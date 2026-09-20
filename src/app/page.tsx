@@ -1,69 +1,83 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Sidebar } from '@/components/Sidebar'
+import { Editor } from '@/components/Editor'
+import { FontSwitcher } from '@/components/FontSwitcher'
+import { CommandPalette } from '@/components/CommandPalette'
+import type { TreeNode } from '@/lib/fs/tree'
 
 export default function Home() {
+  const [tree, setTree] = useState<TreeNode[]>([])
+  const [current, setCurrent] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [width, setWidth] = useState(250)
+  const widthRef = useRef(250)
+  widthRef.current = width
+
+  const refresh = useCallback(async () => {
+    const data = await fetch('/api/tree').then((r) => r.json())
+    setTree(data.tree ?? [])
+  }, [])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
+  useEffect(() => {
+    const stored = Number(window.localStorage.getItem('seyes-sidebar-width'))
+    if (stored >= 180 && stored <= 520) setWidth(stored)
+  }, [])
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === '\\') {
+        event.preventDefault()
+        setSidebarOpen((value) => !value)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  function startResize(event: React.MouseEvent) {
+    event.preventDefault()
+    const move = (e: MouseEvent) => setWidth(Math.min(520, Math.max(180, e.clientX)))
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+      window.localStorage.setItem('seyes-sidebar-width', String(widthRef.current))
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+    <div className="shell">
+      {sidebarOpen && (
+        <>
+          <div className="sidebar-slot" style={{ width }}>
+            <Sidebar tree={tree} current={current} onOpen={setCurrent} onRefresh={() => void refresh()} />
+          </div>
+          <div className="resizer" onMouseDown={startResize} />
+        </>
+      )}
+      <div className="main">
+        <header className="topbar">
+          <FontSwitcher />
+        </header>
+        {current ? (
+          <Editor
+            path={current}
+            onRename={(to) => {
+              setCurrent(to)
+              void refresh()
+            }}
+          />
+        ) : (
+          <div className="empty">Pick a note, or make one.</div>
+        )}
+      </div>
+      <CommandPalette onOpen={setCurrent} />
     </div>
-  );
+  )
 }
