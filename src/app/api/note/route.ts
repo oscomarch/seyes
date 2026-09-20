@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { loadConfig } from '@/lib/config'
 import { readNote, writeNote, createNote, createFolder } from '@/lib/fs/notes'
+import { sameOriginOnly, GuardError } from '../guard'
 
 export const dynamic = 'force-dynamic'
 
 function fail(error: unknown) {
-  return NextResponse.json({ error: (error as Error).message }, { status: 400 })
+  const status = error instanceof GuardError ? 403 : 400
+  return NextResponse.json({ error: (error as Error).message }, { status })
 }
 
 export async function GET(request: Request) {
@@ -20,6 +22,7 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    sameOriginOnly(request)
     const { path: relative, content } = await request.json()
     const { root } = await loadConfig()
     await writeNote(root, relative, content)
@@ -31,6 +34,7 @@ export async function PUT(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    sameOriginOnly(request)
     const { folder = '', name, kind } = await request.json()
     const { root } = await loadConfig()
     const created =
