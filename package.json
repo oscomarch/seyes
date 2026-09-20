@@ -2,6 +2,8 @@
   "name": "seyes",
   "version": "0.1.0",
   "private": true,
+  "bin": { "seyes": "./bin/seyes.mjs" },
+  "files": ["bin", "src", ".next", "next.config.ts", "package.json"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
