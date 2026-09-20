@@ -40,13 +40,18 @@ describe('searchNotes', () => {
     expect(await searchNotes(root, 'zzzz')).toEqual([])
   })
 
-  it('does not throw when a symlink escapes the root, and skips it', async () => {
+  // Inverted: searchNotes walks readTree's output, and readTree now
+  // follows a symlinked directory instead of hiding it (see tests/tree.test.ts
+  // and src/lib/fs/paths.ts's resolveSafely) since the user placed the
+  // symlink there deliberately. The note behind it is therefore searchable
+  // like any other note.
+  it('includes notes reached through a symlinked directory pointing outside the root', async () => {
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-search-outside-'))
     try {
       await fs.writeFile(path.join(outside, 'Secret.md'), 'pricing secret plan')
       await fs.symlink(outside, path.join(root, 'Escape'), 'dir')
       const results = await searchNotes(root, 'pricing')
-      expect(results.map((r) => r.path)).toEqual(['Startups.md'])
+      expect(results.map((r) => r.path).sort()).toEqual(['Escape/Secret.md', 'Startups.md'])
     } finally {
       await fs.rm(outside, { recursive: true, force: true })
     }

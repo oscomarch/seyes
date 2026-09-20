@@ -55,15 +55,68 @@ describe('readTree', () => {
     expect(tree.map((n) => n.name)).toEqual(['Apple', 'banana'])
   })
 
-  it('skips a symlink that points outside the root instead of throwing', async () => {
+  // Inverted: a symlinked directory used to vanish entirely from the tree
+  // (resolveSafely rejected it, and even before that entry.isDirectory()
+  // is false for a symlink so it matched neither branch). It is now
+  // followed and appears as a folder, with its real children listed —
+  // the user placed the symlink there on purpose.
+  it('lists a symlinked directory pointing outside the root as a folder, with its children', async () => {
     const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-outside-'))
     try {
+      await fs.writeFile(path.join(outside, 'Note.md'), '')
       await fs.writeFile(path.join(root, 'Kept.md'), '')
       await fs.symlink(outside, path.join(root, 'Escape'), 'dir')
+
       const tree = await readTree(root)
-      expect(tree).toEqual([{ type: 'note', name: 'Kept', path: 'Kept.md' }])
+
+      expect(tree).toEqual([
+        {
+          type: 'folder',
+          name: 'Escape',
+          path: 'Escape',
+          children: [{ type: 'note', name: 'Note', path: 'Escape/Note.md' }],
+        },
+        { type: 'note', name: 'Kept', path: 'Kept.md' },
+      ])
     } finally {
       await fs.rm(outside, { recursive: true, force: true })
     }
   })
+
+  it('lists a symlinked markdown file as a note', async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-outside-'))
+    try {
+      await fs.writeFile(path.join(outside, 'Real.md'), 'hello')
+      await fs.symlink(path.join(outside, 'Real.md'), path.join(root, 'Linked.md'), 'file')
+
+      const tree = await readTree(root)
+
+      expect(tree).toEqual([{ type: 'note', name: 'Linked', path: 'Linked.md' }])
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true })
+    }
+  })
+
+  it('skips a broken symlink without throwing, keeping other entries', async () => {
+    await fs.writeFile(path.join(root, 'Kept.md'), '')
+    await fs.symlink(path.join(root, 'does-not-exist.md'), path.join(root, 'Broken.md'), 'file')
+
+    const tree = await readTree(root)
+
+    expect(tree).toEqual([{ type: 'note', name: 'Kept', path: 'Kept.md' }])
+  })
+
+  it(
+    'does not hang on a symlink loop',
+    async () => {
+      await fs.symlink(path.join(root, 'b'), path.join(root, 'a'), 'dir')
+      await fs.symlink(path.join(root, 'a'), path.join(root, 'b'), 'dir')
+      await fs.writeFile(path.join(root, 'Kept.md'), '')
+
+      const tree = await readTree(root)
+
+      expect(tree).toEqual([{ type: 'note', name: 'Kept', path: 'Kept.md' }])
+    },
+    2000
+  )
 })

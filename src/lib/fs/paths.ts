@@ -27,13 +27,15 @@ export function resolveInRoot(root: string, relative: string): string {
 }
 
 /**
- * Resolve `path` to its real location, following symlinks (including
- * chains of them) via `lstat`/`readlink` rather than `fs.realpath`, so that
- * a trailing segment which does not exist yet (or a *broken* symlink whose
- * target does not exist) is tolerated instead of throwing: the former is
- * required to support creating new files, and the latter is required to
- * still detect that a broken symlink's target escapes the root. `seen`
- * guards against symlink cycles.
+ * Follow the symlink chain (if any) starting at `target`, purely to detect
+ * a LOOP. Uses `lstat`/`readlink` rather than `fs.realpath` so a trailing
+ * segment that does not exist yet (or a broken symlink) is tolerated
+ * instead of throwing — new-note creation must still work, and a symlink
+ * that merely points somewhere that doesn't exist is not a loop. `seen`
+ * tracks symlinks on the CURRENT resolution stack (not every symlink ever
+ * visited), so the same real symlink legitimately encountered twice in
+ * unrelated branches of one resolution is not mistaken for a cycle.
+ * Throws PathEscapeError only when a genuine cycle is found.
  */
 async function resolveRealish(target: string, seen: Set<string> = new Set()): Promise<string> {
   const { dir, base, root: fsRoot } = path.parse(target)
@@ -52,11 +54,6 @@ async function resolveRealish(target: string, seen: Set<string> = new Set()): Pr
 
   if (!stat.isSymbolicLink()) return candidate
 
-  // `seen` tracks symlinks on the CURRENT resolution stack, not every
-  // symlink ever visited: the same real symlink (e.g. macOS's /tmp) can
-  // legitimately appear in two unrelated branches of one resolution (once
-  // for the root's own ancestry, again for a separate symlink's target),
-  // and that must not be mistaken for a cycle.
   if (seen.has(candidate)) throw new PathEscapeError(target)
   seen.add(candidate)
 
@@ -73,18 +70,29 @@ async function resolveRealish(target: string, seen: Set<string> = new Set()): Pr
 }
 
 /**
- * Resolve a user-supplied relative path against the root folder, verifying
- * containment against the real filesystem so a symlink cannot be used to
- * escape the root. `resolveInRoot` alone only reasons about the path
- * string: it cannot see a symlink planted inside the root that points
- * outside it. This runs that cheap lexical check first, then confirms the
- * real (symlink-resolved) location still sits inside the real root, and
- * returns the original lexical path (not the realpath) on success.
+ * Resolve a user-supplied relative path against the root folder.
  *
- * TOCTOU note: containment is verified before the caller performs its
- * actual read/write, not atomically with it. A symlink swapped in between
- * this check and that operation could still escape. Acceptable for a
- * single-user local app; not safe against a concurrent adversary.
+ * Lexical containment (`resolveInRoot`) is always enforced first: `../`,
+ * absolute paths and null bytes arriving from the API are rejected,
+ * because those are an attempt to escape a boundary the caller does not
+ * control.
+ *
+ * A symlink physically placed inside the root — even one whose target
+ * lies outside the root — is deliberately FOLLOWED, not rejected. Putting
+ * a symlink in your own writing folder is an explicit act of
+ * configuration, the same kind of act as choosing the root folder itself;
+ * refusing to follow it would make the app lie about being a window onto
+ * that folder. The one thing still rejected via the filesystem is a
+ * symlink LOOP, which would otherwise hang a caller that follows the link
+ * (e.g. `fs.stat` in `readTree`).
+ *
+ * Returns the original lexical path (not the resolved realpath), so
+ * user-visible paths stay exactly as the user wrote them.
+ *
+ * TOCTOU note: the loop check happens before the caller's actual
+ * read/write, not atomically with it — a symlink swapped in between could
+ * still change what gets followed. Acceptable for a single-user local
+ * app; not safe against a concurrent adversary.
  */
 export async function resolveSafely(root: string, relative: string): Promise<string> {
   const lexicalTarget = resolveInRoot(root, relative)
@@ -92,12 +100,9 @@ export async function resolveSafely(root: string, relative: string): Promise<str
 
   if (lexicalTarget === absoluteRoot) return lexicalTarget
 
-  const realRoot = await resolveRealish(absoluteRoot)
-  const realTarget = await resolveRealish(lexicalTarget)
-
-  if (realTarget !== realRoot && !realTarget.startsWith(realRoot + path.sep)) {
-    throw new PathEscapeError(relative)
-  }
+  // Walk the chain purely for loop detection; where it ultimately lands
+  // (inside or outside root) is deliberately not checked here.
+  await resolveRealish(lexicalTarget)
 
   return lexicalTarget
 }

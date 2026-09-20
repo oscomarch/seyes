@@ -14,23 +14,36 @@ export async function readTree(root: string, relative = ''): Promise<TreeNode[]>
     if (entry.name.startsWith('.')) continue
     const childPath = relative ? `${relative}/${entry.name}` : entry.name
 
-    // Skip anything that escapes the root (a symlink pointing outside it)
-    // rather than failing the whole walk.
     try {
-      await resolveSafely(root, childPath)
-    } catch {
-      continue
-    }
+      const childAbsolute = await resolveSafely(root, childPath)
 
-    if (entry.isDirectory()) {
-      nodes.push({
-        type: 'folder',
-        name: entry.name,
-        path: childPath,
-        children: await readTree(root, childPath),
-      })
-    } else if (entry.name.endsWith('.md')) {
-      nodes.push({ type: 'note', name: entry.name.slice(0, -3), path: childPath })
+      let isDirectory = entry.isDirectory()
+      if (entry.isSymbolicLink()) {
+        // A symlink's Dirent type reflects the LINK itself, not what it
+        // points at, so `entry.isDirectory()` is always false for one.
+        // `stat` (unlike `lstat`) follows the link, so a symlinked folder
+        // appears as a folder and a symlinked note appears as a note —
+        // the user placed it there on purpose (see resolveSafely). This
+        // throws for a broken link or a symlink loop (ELOOP); either way
+        // it's caught below and the entry is skipped, not fatal.
+        isDirectory = (await fs.stat(childAbsolute)).isDirectory()
+      }
+
+      if (isDirectory) {
+        nodes.push({
+          type: 'folder',
+          name: entry.name,
+          path: childPath,
+          children: await readTree(root, childPath),
+        })
+      } else if (entry.name.endsWith('.md')) {
+        nodes.push({ type: 'note', name: entry.name.slice(0, -3), path: childPath })
+      }
+    } catch {
+      // Broken symlink, symlink loop, permission error, or a lexical
+      // escape (`../`, absolute path) — skip this one entry rather than
+      // failing the whole sidebar.
+      continue
     }
   }
 

@@ -39,10 +39,13 @@ describe('resolveInRoot', () => {
   })
 })
 
-// resolveSafely: containment verified against the REAL filesystem, so a
-// symlink inside the root cannot be used to escape it. resolveInRoot alone
-// is purely lexical (see the gap this covers), so every one of these
-// creates real files/symlinks in an isolated temp dir with proper teardown.
+// resolveSafely: lexical escapes (../, absolute paths, null bytes) are
+// still always rejected via resolveInRoot. Symlinks placed inside the
+// root are now FOLLOWED even when they point outside it — that's a
+// deliberate policy decision (a symlink in your own folder is an act of
+// configuration, not an attack), so the only thing the real-filesystem
+// walk still rejects is a symlink LOOP. Every case below creates real
+// files/symlinks in an isolated temp dir with proper teardown.
 describe('resolveSafely', () => {
   let root: string
   let outside: string
@@ -57,24 +60,35 @@ describe('resolveSafely', () => {
     fs.rmSync(outside, { recursive: true, force: true })
   })
 
-  it('rejects a symlinked file inside the root pointing to a file outside', async () => {
+  // Inverted: a symlinked file inside the root pointing outside it used to
+  // be rejected. It is now followed, because the user placed it there.
+  it('allows a symlinked file inside the root that points to a file outside it', async () => {
     fs.writeFileSync(path.join(outside, 'secret.md'), 'TOP SECRET')
     fs.symlinkSync(path.join(outside, 'secret.md'), path.join(root, 'link.md'))
 
-    await expect(resolveSafely(root, 'link.md')).rejects.toThrow(PathEscapeError)
+    await expect(resolveSafely(root, 'link.md')).resolves.toBe(path.join(root, 'link.md'))
   })
 
-  it('rejects a write path inside a symlinked directory pointing outside the root', async () => {
+  // Inverted: same reasoning, for a symlinked directory rather than a file.
+  it('allows a write path inside a symlinked directory pointing outside the root', async () => {
     fs.mkdirSync(path.join(outside, 'dir'))
     fs.symlinkSync(path.join(outside, 'dir'), path.join(root, 'linked-dir'))
 
-    await expect(resolveSafely(root, 'linked-dir/note.md')).rejects.toThrow(PathEscapeError)
+    await expect(resolveSafely(root, 'linked-dir/note.md')).resolves.toBe(
+      path.join(root, 'linked-dir/note.md')
+    )
   })
 
-  it('rejects a broken symlink inside the root pointing outside', async () => {
+  // Inverted: a broken symlink is still just a symlink the user placed.
+  // Whether its target exists is a concern for whoever tries to open it
+  // (e.g. readTree's `stat`, or the eventual fs.readFile), not for
+  // resolveSafely.
+  it('allows a broken symlink inside the root pointing outside', async () => {
     fs.symlinkSync(path.join(outside, 'does-not-exist.md'), path.join(root, 'broken-link.md'))
 
-    await expect(resolveSafely(root, 'broken-link.md')).rejects.toThrow(PathEscapeError)
+    await expect(resolveSafely(root, 'broken-link.md')).resolves.toBe(
+      path.join(root, 'broken-link.md')
+    )
   })
 
   it('allows a symlink inside the root that points to another location inside the root', async () => {
@@ -109,5 +123,26 @@ describe('resolveSafely', () => {
     // reached through a symlink before any user-supplied path is involved.
     await expect(resolveSafely(root, '')).resolves.toBe(root)
     await expect(resolveSafely(root, 'anything.md')).resolves.toBe(path.join(root, 'anything.md'))
+  })
+
+  // The real attack surface: these never touch a symlink and must stay
+  // rejected regardless of the symlink-following policy above.
+  it('still rejects parent traversal', async () => {
+    await expect(resolveSafely(root, '../secrets.md')).rejects.toThrow(PathEscapeError)
+  })
+
+  it('still rejects absolute paths', async () => {
+    await expect(resolveSafely(root, '/etc/passwd')).rejects.toThrow(PathEscapeError)
+  })
+
+  it('still rejects null bytes', async () => {
+    await expect(resolveSafely(root, 'a\0b.md')).rejects.toThrow(PathEscapeError)
+  })
+
+  it('rejects a symlink loop without hanging', async () => {
+    fs.symlinkSync(path.join(root, 'b'), path.join(root, 'a'))
+    fs.symlinkSync(path.join(root, 'a'), path.join(root, 'b'))
+
+    await expect(resolveSafely(root, 'a')).rejects.toThrow(PathEscapeError)
   })
 })
