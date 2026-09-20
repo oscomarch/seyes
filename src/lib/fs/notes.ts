@@ -18,9 +18,11 @@ export async function writeNote(root: string, relative: string, content: string)
   const dir = path.dirname(target)
   await fs.mkdir(dir, { recursive: true })
 
+  const normalized = content === '' ? '' : `${content.replace(/\n+$/, '')}\n`
+
   const temp = path.join(dir, `.${path.basename(target)}.${randomBytes(6).toString('hex')}.tmp`)
   try {
-    await fs.writeFile(temp, content, 'utf8')
+    await fs.writeFile(temp, normalized, 'utf8')
     await fs.rename(temp, target)
   } catch (error) {
     await fs.rm(temp, { force: true })
