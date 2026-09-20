@@ -22,6 +22,10 @@ describe('readTree', () => {
     await fs.writeFile(path.join(root, 'Today.md'), '')
     const tree = await readTree(root)
     expect(tree).toEqual([{ type: 'note', name: 'Today', path: 'Today.md' }])
+    // An ordinary note is not a symlink, so it must not carry the `link`
+    // marker at all (not even `link: false`) — toEqual above already
+    // guarantees this, but assert it explicitly since it's the point.
+    expect(tree[0]).not.toHaveProperty('link')
   })
 
   it('nests folders and sorts folders before notes', async () => {
@@ -74,6 +78,7 @@ describe('readTree', () => {
           type: 'folder',
           name: 'Escape',
           path: 'Escape',
+          link: true,
           children: [{ type: 'note', name: 'Note', path: 'Escape/Note.md' }],
         },
         { type: 'note', name: 'Kept', path: 'Kept.md' },
@@ -91,7 +96,7 @@ describe('readTree', () => {
 
       const tree = await readTree(root)
 
-      expect(tree).toEqual([{ type: 'note', name: 'Linked', path: 'Linked.md' }])
+      expect(tree).toEqual([{ type: 'note', name: 'Linked', path: 'Linked.md', link: true }])
     } finally {
       await fs.rm(outside, { recursive: true, force: true })
     }
@@ -119,4 +124,31 @@ describe('readTree', () => {
     },
     2000
   )
+
+  it('flags a symlinked directory with link: true', async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-outside-'))
+    try {
+      await fs.symlink(outside, path.join(root, 'Elsewhere'), 'dir')
+
+      const tree = await readTree(root)
+
+      expect(tree).toEqual([{ type: 'folder', name: 'Elsewhere', path: 'Elsewhere', link: true, children: [] }])
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true })
+    }
+  })
+
+  it('flags a symlinked markdown file with link: true', async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-outside-'))
+    try {
+      await fs.writeFile(path.join(outside, 'Original.md'), 'hello')
+      await fs.symlink(path.join(outside, 'Original.md'), path.join(root, 'Pointer.md'), 'file')
+
+      const tree = await readTree(root)
+
+      expect(tree).toEqual([{ type: 'note', name: 'Pointer', path: 'Pointer.md', link: true }])
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true })
+    }
+  })
 })

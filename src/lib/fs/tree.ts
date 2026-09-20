@@ -2,8 +2,8 @@ import fs from 'node:fs/promises'
 import { resolveSafely } from './paths'
 
 export type TreeNode =
-  | { type: 'note'; name: string; path: string }
-  | { type: 'folder'; name: string; path: string; children: TreeNode[] }
+  | { type: 'note'; name: string; path: string; link?: true }
+  | { type: 'folder'; name: string; path: string; children: TreeNode[]; link?: true }
 
 export async function readTree(root: string, relative = ''): Promise<TreeNode[]> {
   const dir = await resolveSafely(root, relative)
@@ -35,9 +35,15 @@ export async function readTree(root: string, relative = ''): Promise<TreeNode[]>
           name: entry.name,
           path: childPath,
           children: await readTree(root, childPath),
+          ...(entry.isSymbolicLink() ? { link: true } : {}),
         })
       } else if (entry.name.endsWith('.md')) {
-        nodes.push({ type: 'note', name: entry.name.slice(0, -3), path: childPath })
+        nodes.push({
+          type: 'note',
+          name: entry.name.slice(0, -3),
+          path: childPath,
+          ...(entry.isSymbolicLink() ? { link: true } : {}),
+        })
       }
     } catch {
       // Broken symlink, symlink loop, permission error, or a lexical
