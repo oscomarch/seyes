@@ -12,6 +12,11 @@ export default function Home() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [width, setWidth] = useState(250)
   const widthRef = useRef(250)
+  // startResize below registers native mousemove/mouseup listeners outside
+  // React's render cycle; they need the latest width without re-subscribing
+  // on every drag tick, so this ref is kept in sync during render rather
+  // than through an effect (which would lag a render behind).
+  // eslint-disable-next-line react-hooks/refs -- latest-value ref read by native listeners added in startResize, not by render
   widthRef.current = width
 
   const refresh = useCallback(async () => {
@@ -20,11 +25,17 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
+    // Initial data fetch on mount: synchronizing with the external
+    // filesystem via /api/tree, not a render-driven cascade.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fetch of the tree on mount
     void refresh()
   }, [refresh])
 
   useEffect(() => {
+    // One-time read from localStorage on mount, mirroring the same pattern
+    // used in FontSwitcher: localStorage is only reachable after mount.
     const stored = Number(window.localStorage.getItem('seyes-sidebar-width'))
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time read from localStorage on mount, not a render-triggered cascade
     if (stored >= 180 && stored <= 520) setWidth(stored)
   }, [])
 
