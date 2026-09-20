@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { readNote, writeNote, createNote, createFolder } from '@/lib/fs/notes'
+import { readNote, writeNote, createNote, createFolder, movePath, trashPath } from '@/lib/fs/notes'
 
 let root: string
 
@@ -52,5 +52,38 @@ describe('notes', () => {
 
   it('refuses to read outside the root', async () => {
     await expect(readNote(root, '../escape.md')).rejects.toThrow()
+  })
+})
+
+describe('move and trash', () => {
+  it('renames a note in place', async () => {
+    await writeNote(root, 'a.md', 'body')
+    await movePath(root, 'a.md', 'b.md')
+    expect(await readNote(root, 'b.md')).toBe('body')
+    await expect(readNote(root, 'a.md')).rejects.toThrow()
+  })
+
+  it('moves a note into a folder, creating it', async () => {
+    await writeNote(root, 'a.md', 'body')
+    await movePath(root, 'a.md', 'Journal/a.md')
+    expect(await readNote(root, 'Journal/a.md')).toBe('body')
+  })
+
+  it('refuses to overwrite an existing file', async () => {
+    await writeNote(root, 'a.md', 'a')
+    await writeNote(root, 'b.md', 'b')
+    await expect(movePath(root, 'a.md', 'b.md')).rejects.toThrow(/already exists/)
+    expect(await readNote(root, 'b.md')).toBe('b')
+  })
+
+  it('refuses to move outside the root', async () => {
+    await writeNote(root, 'a.md', 'a')
+    await expect(movePath(root, 'a.md', '../a.md')).rejects.toThrow()
+  })
+
+  it('trashPath removes the file from the writing folder', async () => {
+    await writeNote(root, 'a.md', 'body')
+    await trashPath(root, 'a.md')
+    await expect(readNote(root, 'a.md')).rejects.toThrow()
   })
 })

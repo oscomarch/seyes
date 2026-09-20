@@ -55,3 +55,22 @@ export async function createFolder(root: string, parent: string, name: string): 
   await fs.mkdir(await resolveSafely(root, relative), { recursive: true })
   return relative
 }
+
+export async function movePath(root: string, from: string, to: string): Promise<void> {
+  const source = await resolveSafely(root, from)
+  const target = await resolveSafely(root, to)
+  if (source === target) return
+  if (await exists(target)) throw new Error(`A file named "${path.basename(to)}" already exists`)
+  await fs.mkdir(path.dirname(target), { recursive: true })
+  await fs.rename(source, target)
+}
+
+/**
+ * Send to the OS trash rather than unlinking. A journal entry deleted by a
+ * misclick must be recoverable from the Trash.
+ */
+export async function trashPath(root: string, relative: string): Promise<void> {
+  const target = await resolveSafely(root, relative)
+  const { default: trash } = await import('trash')
+  await trash(target)
+}
