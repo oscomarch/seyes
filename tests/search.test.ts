@@ -1,0 +1,54 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import fs from 'node:fs/promises'
+import os from 'node:os'
+import path from 'node:path'
+import { searchNotes } from '@/lib/fs/search'
+
+let root: string
+
+beforeEach(async () => {
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-search-'))
+  await fs.mkdir(path.join(root, 'Journal'))
+  await fs.writeFile(path.join(root, 'Journal', 'Monday.md'), 'Woke up early and ran')
+  await fs.writeFile(path.join(root, 'Startups.md'), 'Pricing thoughts for the marketplace')
+})
+afterEach(async () => {
+  await fs.rm(root, { recursive: true, force: true })
+})
+
+describe('searchNotes', () => {
+  it('matches note content case-insensitively', async () => {
+    const results = await searchNotes(root, 'PRICING')
+    expect(results.map((r) => r.path)).toEqual(['Startups.md'])
+  })
+
+  it('matches on the filename too', async () => {
+    const results = await searchNotes(root, 'monday')
+    expect(results.map((r) => r.path)).toEqual(['Journal/Monday.md'])
+  })
+
+  it('returns a surrounding excerpt for a content match', async () => {
+    const [hit] = await searchNotes(root, 'early')
+    expect(hit.excerpt).toContain('early')
+  })
+
+  it('returns nothing for an empty query', async () => {
+    expect(await searchNotes(root, '   ')).toEqual([])
+  })
+
+  it('returns nothing when there is no match', async () => {
+    expect(await searchNotes(root, 'zzzz')).toEqual([])
+  })
+
+  it('does not throw when a symlink escapes the root, and skips it', async () => {
+    const outside = await fs.mkdtemp(path.join(os.tmpdir(), 'seyes-search-outside-'))
+    try {
+      await fs.writeFile(path.join(outside, 'Secret.md'), 'pricing secret plan')
+      await fs.symlink(outside, path.join(root, 'Escape'), 'dir')
+      const results = await searchNotes(root, 'pricing')
+      expect(results.map((r) => r.path)).toEqual(['Startups.md'])
+    } finally {
+      await fs.rm(outside, { recursive: true, force: true })
+    }
+  })
+})
