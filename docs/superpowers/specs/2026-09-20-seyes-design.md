@@ -117,6 +117,15 @@ drag to move. Collapsible with cmd+\. Width is remembered.
 globally, applied everywhere. It is purely visual and conditions nothing:
 it is not stored per file, not stored per folder, and not written to disk.
 
+The three are system fonts, so nothing is ever downloaded and the app stays
+fully offline:
+
+| Label | Stack | For |
+|---|---|---|
+| Courier | Courier New, monospace | journaling, typewriter feel |
+| Verdana | Verdana, sans-serif | startup and working notes |
+| Georgia | Georgia, serif | long-form reading and essays |
+
 **Command palette (cmd+K).** Jump to any note by name, fuzzy matched. Also
 performs full-text search across all notes.
 
