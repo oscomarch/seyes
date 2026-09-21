@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Editor } from '@/components/Editor'
-import { FontSwitcher } from '@/components/FontSwitcher'
+import { Settings } from '@/components/Settings'
+import { PanelToggleIcon } from '@/components/icons'
 import { CommandPalette } from '@/components/CommandPalette'
 import type { TreeNode } from '@/lib/fs/tree'
 
@@ -74,7 +75,14 @@ export default function Home() {
       )}
       <div className="main">
         <header className="topbar">
-          <FontSwitcher />
+          <button
+            className="icon-button"
+            onClick={() => setSidebarOpen((value) => !value)}
+            title={sidebarOpen ? 'Hide sidebar (cmd+\\)' : 'Show sidebar (cmd+\\)'}
+          >
+            <PanelToggleIcon title="Toggle sidebar" />
+          </button>
+          <Settings path={current} />
         </header>
         {current ? (
           <Editor

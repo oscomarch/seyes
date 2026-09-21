@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import type { TreeNode } from '@/lib/fs/tree'
+import { NewNoteIcon, NewFolderIcon } from './icons'
 
 type BranchProps = {
   nodes: TreeNode[]
@@ -145,12 +146,12 @@ export function Sidebar({
     <nav className="sidebar">
       <div className="sidebar-head">
         <span className="wordmark">seyes</span>
-        <div>
-          <button onClick={() => void create('note')} title="New note">
-            +
+        <div className="sidebar-actions">
+          <button className="icon-button" onClick={() => void create('note')} title="New note">
+            <NewNoteIcon title="New note" />
           </button>
-          <button onClick={() => void create('folder')} title="New folder">
-            ++
+          <button className="icon-button" onClick={() => void create('folder')} title="New folder">
+            <NewFolderIcon title="New folder" />
           </button>
         </div>
       </div>

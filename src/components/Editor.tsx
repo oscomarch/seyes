@@ -78,7 +78,9 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
         }}
       />
       {editor && <BubbleToolbar editor={editor} />}
-      <EditorContent editor={editor} />
+      <div className="sheet">
+        <EditorContent editor={editor} />
+      </div>
       <div className={`save-state save-state-${state}`}>
         {state === 'error' ? 'Not saved' : state === 'saving' ? 'Saving' : ''}
       </div>
