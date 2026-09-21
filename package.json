@@ -37,7 +37,8 @@
     "next.config.ts",
     "tsconfig.json",
     "next-env.d.ts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "next dev -H 127.0.0.1",
@@ -45,7 +46,8 @@
     "start": "next start -H 127.0.0.1",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm test && npm run build"
   },
   "dependencies": {
     "@tiptap/core": "^3.31.3",
