@@ -188,7 +188,8 @@ function workspace() {
   if (!installed) return appRoot // a dev checkout: build where it lives
 
   const version = JSON.parse(fs.readFileSync(path.join(appRoot, 'package.json'), 'utf8')).version
-  const work = path.join(os.homedir(), '.cache', 'seyes', `app-${version}`)
+  const cache = path.join(os.homedir(), '.cache', 'seyes')
+  const work = path.join(cache, `app-${version}`)
   const stamp = path.join(work, '.seyes-source')
 
   try {
@@ -196,10 +197,42 @@ function workspace() {
   } catch {
     // Never prepared, or prepared from a different install. Rebuild it.
   }
-  return prepareWorkspace(work, stamp)
+  return prepareWorkspace(work, stamp, cache, `app-${version}`)
 }
 
-function prepareWorkspace(work, stamp) {
+/*
+ * Each version builds into its own `app-<version>` directory, and a prepared
+ * one weighs about 400MB once its dependencies are installed. Without this,
+ * every upgrade would strand the previous version's copy on disk forever:
+ * three upgrades and Seyes is quietly sitting on more than a gigabyte of a
+ * machine whose owner only ever asked for a text editor. Only the version
+ * about to run is kept.
+ */
+function pruneOldVersions(cache, keep) {
+  let entries
+  try {
+    entries = fs.readdirSync(cache, { withFileTypes: true })
+  } catch {
+    return // No cache yet. Nothing to prune.
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith('app-') || entry.name === keep) continue
+    // Best-effort: a stale copy that will not delete is not worth failing a
+    // launch over, it just keeps taking up the space it already took.
+    try {
+      fs.rmSync(path.join(cache, entry.name), { recursive: true, force: true })
+    } catch {}
+  }
+}
+
+function prepareWorkspace(work, stamp, cache, keep) {
+  // Only ever on a genuine (re)prepare, never on an ordinary launch: a plain
+  // daily start must not go deleting directories, and an older version still
+  // running from its own workspace keeps it until the moment you actually
+  // move to a new one.
+  pruneOldVersions(cache, keep)
+
   fs.rmSync(work, { recursive: true, force: true })
   fs.mkdirSync(work, { recursive: true })
 
@@ -277,11 +310,15 @@ const server = spawn('npx', ['next', 'start', '-H', '127.0.0.1', '-p', port], {
   env: process.env,
 })
 
-setTimeout(() => {
-  const opener =
-    process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
-  spawn(opener, [`http://localhost:${port}`], { stdio: 'ignore', shell: true })
-}, 1500)
+// The Mac app embeds the page in its own window and sets SEYES_NO_OPEN, so
+// launching from the icon does not also throw a browser tab at you.
+if (!process.env.SEYES_NO_OPEN) {
+  setTimeout(() => {
+    const opener =
+      process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
+    spawn(opener, [`http://localhost:${port}`], { stdio: 'ignore', shell: true })
+  }, 1500)
+}
 
 const stop = () => {
   write(SHOW)

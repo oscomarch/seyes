@@ -6,6 +6,9 @@ A small writing app that keeps your writing in plain files on your own computer.
 npx seyes-app
 ```
 
+Or install it once and get a real Mac app in your Dock. See
+[Get it as a Mac app](#get-it-as-a-mac-app).
+
 ![Seyes](.github/media/seyes.png)
 
 <details>
@@ -94,6 +97,42 @@ The first run asks one question, where your writing should live, defaulting to
 `~/Documents/Seyes`. Then it builds itself once, which takes under a minute, and
 opens your browser. Nothing else to configure.
 
+One thing worth knowing if you are on a Mac: if you have iCloud's "Desktop &
+Documents Folders" switched on, then `~/Documents` is inside iCloud Drive, and
+so is that default. That is fine if you want your writing synced, and not fine
+if you thought it was staying on this machine. Pick a folder outside `~/Desktop`
+and `~/Documents` if you want it local, for instance `~/Seyes`. You can change
+it later from the settings gear.
+
+Running it every day is nicer as an installed command than through `npx`, which
+re-downloads and rebuilds whenever you invoke it slightly differently:
+
+```
+npm i -g seyes-app
+seyes
+```
+
+## Get it as a Mac app
+
+An icon in your Dock, no terminal, ⌘Q to quit:
+
+```
+npm i -g seyes-app
+bash "$(npm root -g)/seyes-app/mac/build.sh"
+```
+
+That puts `Seyes.app` in `/Applications`. Double-click it, or ⌘Space and type
+"seyes". It needs the Xcode command line tools (`xcode-select --install`), which
+is the only extra thing to install, and it takes a few seconds.
+
+The app is a wrapper, not a copy. It finds the `seyes` command, starts the
+server, shows the page in its own window, and stops the server again when you
+quit. Upgrading is `npm i -g seyes-app`; the app itself never needs rebuilding.
+
+Because the page runs edge to edge under a transparent titlebar, the window is
+dragged by the app's own top bar rather than a titlebar strip. Grab it anywhere
+that is not a button.
+
 To work on Seyes itself:
 
 ```
@@ -116,6 +155,7 @@ src/lib/editor    the editor, and markdown in and out of it
 src/app/api       a thin HTTP layer over the above
 src/components    sidebar, editor, desk, settings
 bin/seyes.mjs     the launcher you get from npx
+mac/              the Mac app wrapper, and the script that builds it
 ```
 
 The filesystem layer knows nothing about markdown, and the editor layer knows
@@ -128,6 +168,7 @@ It is early. Some things are rough:
 
 - No images, tables or coloured text
 - It has only really been used on macOS
+- The Mac app is unsigned, so it is built on your machine rather than downloaded
 
 ## License
 

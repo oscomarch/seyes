@@ -448,13 +448,24 @@ body::before {
 .shell { position: relative; z-index: 1; }
 
 /*
- * A typewriter caret: solid and warm rather than a thin blinking hairline.
- * `caret-shape` is still new, so the colour is set independently and a
- * browser without it simply gets an amber line instead of an amber block.
+ * In the Mac app the page runs edge to edge beneath a transparent titlebar,
+ * so whichever chrome bar is leftmost has to leave room for the traffic
+ * lights or they land on top of it. Normally that is the sidebar's head;
+ * with the sidebar hidden (cmd+\) the topbar becomes the shell's first
+ * child and takes the inset instead. Scoped to data-mac, which only the
+ * Mac app sets, so the browser is untouched.
+ */
+:root[data-mac="1"] .sidebar-head { padding-left: 78px; }
+:root[data-mac="1"] .shell > .main:first-child .topbar { padding-left: 78px; }
+
+/*
+ * An ordinary text caret, tinted to the accent so it still belongs to the
+ * page. It was a `caret-shape: block` typewriter cursor, which at the
+ * editor's body size rendered as a slab wide enough to cover the character
+ * next to it and read as a selection rather than an insertion point.
  */
 .ProseMirror, .title {
   caret-color: var(--accent);
-  caret-shape: block;
 }
 
 /*

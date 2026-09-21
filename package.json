@@ -1,6 +1,6 @@
 {
   "name": "seyes-app",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "A local-first writing app. Your notes are plain markdown files on your own machine, and nothing ever leaves it.",
   "keywords": [
     "writing",
@@ -32,6 +32,7 @@
   },
   "files": [
     "bin",
+    "mac",
     "src",
     "next.config.ts",
     "tsconfig.json",
