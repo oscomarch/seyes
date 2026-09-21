@@ -111,6 +111,15 @@ export function Settings({ path }: { path: string | null }) {
     }
   }, [open, path])
 
+  async function reveal() {
+    if (!path) return
+    await fetch('/api/reveal', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ path }),
+    })
+  }
+
   async function copyPath() {
     if (!meta) return
     try {
@@ -185,6 +194,9 @@ export function Settings({ path }: { path: string | null }) {
                   <div className="settings-path">
                     <code>{meta.path}</code>
                     <button onClick={() => void copyPath()}>{copied ? 'Copied' : 'Copy'}</button>
+                    <button onClick={() => void reveal()} title="Show this file in Finder">
+                      Open
+                    </button>
                   </div>
                   <dl className="settings-facts">
                     <dt>Created</dt>

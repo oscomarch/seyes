@@ -28,32 +28,32 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --paper: #131311;
-    --card: #1a1a17;
-    --ink: #e9e5db;
-    --muted: #7e786c;
-    --rule: #2c2b26;
-    --rule-strong: #3d3b34;
-    --accent: #8fa9e0;
-    --sidebar: #171614;
-    --mark: #6a5a1c;
-    --ruling: rgba(130, 160, 210, 0.10);
-    --margin-line: rgba(200, 110, 95, 0.18);
+    --paper: #14100c;
+    --card: #1c1712;
+    --ink: #efe3d2;
+    --muted: #8d7c66;
+    --rule: #2f2720;
+    --rule-strong: #46392d;
+    --accent: #d79a5b;
+    --sidebar: #191410;
+    --mark: #7c5a1d;
+    --ruling: rgba(214, 156, 96, 0.13);
+    --margin-line: rgba(214, 112, 72, 0.30);
   }
 }
 
 :root[data-theme="dark"] {
-  --paper: #131311;
-  --card: #1a1a17;
-  --ink: #e9e5db;
-  --muted: #7e786c;
-  --rule: #2c2b26;
-  --rule-strong: #3d3b34;
-  --accent: #8fa9e0;
-  --sidebar: #171614;
-  --mark: #6a5a1c;
-  --ruling: rgba(130, 160, 210, 0.10);
-  --margin-line: rgba(200, 110, 95, 0.18);
+  --paper: #14100c;
+  --card: #1c1712;
+  --ink: #efe3d2;
+  --muted: #8d7c66;
+  --rule: #2f2720;
+  --rule-strong: #46392d;
+  --accent: #d79a5b;
+  --sidebar: #191410;
+  --mark: #7c5a1d;
+  --ruling: rgba(214, 156, 96, 0.13);
+  --margin-line: rgba(214, 112, 72, 0.30);
 }
 
 * { box-sizing: border-box; }
@@ -256,11 +256,25 @@ button { font-family: inherit; }
 .ProseMirror a { color: var(--accent); text-underline-offset: 3px; }
 .ProseMirror mark { background: var(--mark); color: inherit; padding: 0 2px; }
 .ProseMirror ul, .ProseMirror ol { margin: 0 0 var(--line); padding-left: 22px; }
-.ProseMirror li { margin: 0; }
+.ProseMirror li { margin: 0; line-height: var(--line); }
+.ProseMirror li > p { margin: 0; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 2px; }
-.ProseMirror ul[data-type="taskList"] li { display: flex; gap: 8px; align-items: baseline; }
-.ProseMirror ul[data-type="taskList"] li p { margin: 0; }
-.ProseMirror ul[data-type="taskList"] input { accent-color: var(--ink); }
+/* Each row is exactly one ruled line tall, and the checkbox is centred on
+   that line, so a to-do list sits on the ruling like the prose does. */
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex; gap: 9px; align-items: flex-start;
+  min-height: var(--line);
+}
+.ProseMirror ul[data-type="taskList"] li > label {
+  display: flex; align-items: center; flex: none;
+  height: var(--line); margin: 0;
+}
+.ProseMirror ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.ProseMirror ul[data-type="taskList"] li p { margin: 0; line-height: var(--line); }
+.ProseMirror ul[data-type="taskList"] input {
+  accent-color: var(--accent); width: 13px; height: 13px; margin: 0; cursor: pointer;
+}
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"] > div { color: var(--muted); }
 .ProseMirror details {
   border-left: 2px solid var(--rule-strong);
   padding-left: 14px; margin: 0 0 var(--line);

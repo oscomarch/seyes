@@ -8,12 +8,15 @@ Delete the app and your writing is still sitting there, readable in any editor.
 
 ## Run it
 
-    git clone <repo-url> seyes
-    cd seyes
-    npm install
-    npm run dev
+    npx seyes
 
-Then open http://localhost:3000.
+That is the whole install. It creates `~/Documents/Seyes`, puts one note in
+it so you are not staring at an empty box, builds itself the first time, and
+opens your browser. There is no account, no sign-up and no setup screen.
+
+To work on Seyes itself:
+
+    git clone <repo-url> seyes && cd seyes && npm install && npm run dev
 
 ## Writing
 

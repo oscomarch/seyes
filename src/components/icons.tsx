@@ -50,8 +50,8 @@ export function SettingsIcon({ title }: { title: string }) {
   return (
     <svg {...common} role="img" aria-label={title}>
       <title>{title}</title>
-      <circle cx="8" cy="8" r="2.1" />
-      <path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M3.3 12.7l1.4-1.4M11.3 4.7l1.4-1.4" />
+      <path d="M6.7 1.8h2.6l.3 1.85 1.2.7 1.75-.66 1.3 2.26-1.4 1.22v1.4l1.4 1.22-1.3 2.26-1.75-.66-1.2.7-.3 1.85H6.7l-.3-1.85-1.2-.7-1.75.66-1.3-2.26 1.4-1.22v-1.4l-1.4-1.22 1.3-2.26 1.75.66 1.2-.7z" />
+      <circle cx="8" cy="8" r="2.05" />
     </svg>
   )
 }
