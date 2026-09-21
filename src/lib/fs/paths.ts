@@ -42,7 +42,7 @@ async function resolveRealish(target: string, seen: Set<string> = new Set()): Pr
   if (!base) return fsRoot
 
   const parentReal = await resolveRealish(dir, seen)
-  const candidate = path.join(parentReal, base)
+  const candidate = path.join(/*turbopackIgnore: true*/ parentReal, base)
 
   let stat
   try {

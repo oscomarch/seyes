@@ -30,7 +30,7 @@ export async function POST(request: Request) {
           ? ['explorer', [`/select,${target}`]]
           : ['xdg-open', [path.dirname(target)]]
 
-    spawn(command, args, { stdio: 'ignore', detached: true }).unref()
+    spawn(/*turbopackIgnore: true*/ command, args, { stdio: 'ignore', detached: true }).unref()
     return NextResponse.json({ ok: true })
   } catch (error) {
     const status = error instanceof GuardError ? 403 : 400
