@@ -130,7 +130,9 @@ export function Sidebar({
   onRefresh: () => void
 }) {
   async function create(kind: 'note' | 'folder') {
-    const name = kind === 'folder' ? window.prompt('Folder name') : 'Untitled'
+    // Trim: a trailing space in a folder name makes a real, confusing
+    // directory on disk that is hard to spot and awkward to type.
+    const name = kind === 'folder' ? window.prompt('Folder name')?.trim() : 'Untitled'
     if (kind === 'folder' && !name) return
     const response = await fetch('/api/note', {
       method: 'POST',

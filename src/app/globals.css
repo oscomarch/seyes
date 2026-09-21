@@ -24,6 +24,9 @@
 
   /* The rules and the text must share one number or they drift apart. */
   --line: 28px;
+
+  /* Header bars share one height so their bottom rules form a single line. */
+  --bar: 42px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -95,7 +98,7 @@ button { font-family: inherit; }
 }
 .sidebar-head {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 10px 10px 14px;
+  height: var(--bar); padding: 0 8px 0 24px;
   position: sticky; top: 0; z-index: 2;
   background: var(--sidebar);
   border-bottom: 1px solid var(--rule);
@@ -120,7 +123,7 @@ button { font-family: inherit; }
   box-shadow: inset 2px 0 0 var(--ink);
 }
 .row.folder { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11.5px; }
-.row .caret { width: 10px; color: var(--muted); font-size: 9px; }
+.row .caret { width: 10px; flex: none; color: var(--muted); font-size: 9px; }
 .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .linked { color: var(--margin-line); font-size: 10px; flex: none; }
 .row .rename, .row .trash {
@@ -135,7 +138,8 @@ button { font-family: inherit; }
 .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
 .topbar {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 10px; border-bottom: 1px solid var(--rule);
+  height: var(--bar); padding: 0 10px;
+  border-bottom: 1px solid var(--rule);
   background: var(--paper);
 }
 .empty {
