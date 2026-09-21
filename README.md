@@ -6,6 +6,15 @@ A small writing app that keeps your writing in plain files on your own computer.
 npx seyes-app
 ```
 
+![Seyes](.github/media/seyes.png)
+
+<details>
+<summary>Dark</summary>
+
+![Seyes in dark mode](.github/media/seyes-dark.png)
+
+</details>
+
 ---
 
 ## Why this exists
@@ -117,8 +126,6 @@ function that refuses to leave your folder.
 
 It is early. Some things are rough:
 
-- Renaming still uses a plain browser prompt, which is ugly
-- If a note starts with a `# Heading`, the title appears twice
 - No images, tables or coloured text
 - It has only really been used on macOS
 

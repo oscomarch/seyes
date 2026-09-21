@@ -80,8 +80,17 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
     if (response.ok) onRename(to)
   }
 
+  // A leading H1 in the file is the document's own title, so the filename is
+  // demoted to a quiet label rather than competing with it.
+  const ownsItsTitle = /^\s*#\s+\S/.test(markdown)
+
   return (
     <main className="page">
+      {ownsItsTitle ? (
+        <div className="title-label" title={path}>
+          {title}
+        </div>
+      ) : (
       <input
         className="title"
         defaultValue={title}
@@ -95,6 +104,7 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
           }
         }}
       />
+      )}
       {editor && <BubbleToolbar editor={editor} />}
       <div className="sheet">
         <EditorContent editor={editor} />

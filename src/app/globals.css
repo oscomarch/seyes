@@ -410,3 +410,20 @@ button { font-family: inherit; }
 }
 .desk-start:hover { opacity: 0.88; }
 .desk-note { font-size: 11px; color: var(--muted); margin: 18px 0 0; }
+
+/* Inline rename, Finder-style, instead of a browser dialog. */
+.row-rename {
+  flex: 1; min-width: 0;
+  background: var(--paper); color: var(--ink);
+  border: 1px solid var(--rule-strong); border-radius: 2px;
+  font-family: var(--ui-font); font-size: 12.5px;
+  outline: none; padding: 1px 5px; margin: -2px 0;
+}
+
+/* The filename, when the note carries its own H1 title. */
+.title-label {
+  max-width: 680px; margin: 0 auto 6px; padding-left: 28px;
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
