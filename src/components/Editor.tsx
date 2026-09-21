@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { browserExtensions } from '@/lib/editor/browserExtensions'
 import { useAutosave } from '@/hooks/useAutosave'
+import { useLiveFolder } from '@/hooks/useLiveFolder'
 import { BubbleToolbar } from './BubbleToolbar'
 
 export function Editor({ path, onRename }: { path: string; onRename: (to: string) => void }) {
@@ -39,6 +40,23 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
       cancelled = true
     }
   }, [path, editor])
+
+  // If this note changes on disk (edited elsewhere, synced, reverted), take
+  // the new version, but never while the user is mid-edit: unsaved typing
+  // always wins over what is on disk.
+  const adopt = useCallback(() => {
+    if (!editor || !loaded || editor.isFocused) return
+    fetch(`/api/note?path=${encodeURIComponent(path)}`)
+      .then((r) => r.json())
+      .then(({ content }) => {
+        if (typeof content !== 'string' || content === markdown) return
+        editor.commands.setContent(editor.storage.markdown.parser.parse(content))
+        setMarkdown(content)
+      })
+      .catch(() => {})
+  }, [editor, loaded, path, markdown])
+
+  useLiveFolder(adopt)
 
   const state = useAutosave(async () => {
     if (!loaded) return

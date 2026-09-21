@@ -2,7 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Sidebar } from '@/components/Sidebar'
 import { Editor } from '@/components/Editor'
+import { Desk } from '@/components/Desk'
 import { Settings } from '@/components/Settings'
+import { useLiveFolder } from '@/hooks/useLiveFolder'
 import { PanelToggleIcon } from '@/components/icons'
 import { CommandPalette } from '@/components/CommandPalette'
 import type { TreeNode } from '@/lib/fs/tree'
@@ -20,10 +22,17 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/refs -- latest-value ref read by native listeners added in startResize, not by render
   widthRef.current = width
 
+  const [pulse, setPulse] = useState(0)
+
   const refresh = useCallback(async () => {
     const data = await fetch('/api/tree').then((r) => r.json())
     setTree(data.tree ?? [])
+    setPulse((n) => n + 1)
   }, [])
+
+  // The folder is the source of truth, so the app follows it rather than
+  // assuming it is the only thing writing there.
+  useLiveFolder(refresh)
 
   useEffect(() => {
     // Initial data fetch on mount: synchronizing with the external
@@ -93,7 +102,20 @@ export default function Home() {
             }}
           />
         ) : (
-          <div className="empty">Pick a note, or make one.</div>
+          <Desk
+            reloadKey={pulse}
+            onOpen={setCurrent}
+            onNew={async () => {
+              const response = await fetch('/api/note', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ folder: '', name: 'Untitled', kind: 'note' }),
+              })
+              const { path } = await response.json()
+              if (path) setCurrent(path)
+              void refresh()
+            }}
+          />
         )}
       </div>
       <CommandPalette onOpen={setCurrent} />
