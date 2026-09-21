@@ -11,20 +11,87 @@ import { spawn, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import readline from 'node:readline/promises'
 import { fileURLToPath } from 'node:url'
 
 const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const port = process.env.PORT ?? '3000'
 
-function configuredRoot() {
-  const configFile = path.join(os.homedir(), '.config', 'seyes', 'config.json')
+const configFile = path.join(os.homedir(), '.config', 'seyes', 'config.json')
+const documentsRoot = path.join(os.homedir(), 'Documents', 'Seyes')
+const desktop = path.join(os.homedir(), 'Desktop')
+
+function savedRoot() {
   try {
     const root = JSON.parse(fs.readFileSync(configFile, 'utf8')).root
     if (typeof root === 'string' && root) return root
   } catch {
-    // No config yet. The default below is what the app uses too.
+    // Not chosen yet.
   }
-  return path.join(os.homedir(), 'Documents', 'Seyes')
+  return null
+}
+
+function saveRoot(root) {
+  fs.mkdirSync(path.dirname(configFile), { recursive: true })
+  fs.writeFileSync(configFile, JSON.stringify({ root }, null, 2), 'utf8')
+}
+
+/**
+ * Asked once, on the very first run, and never again.
+ *
+ * Where the files live is the whole point of Seyes, so it is the one thing
+ * worth interrupting for. Everything else is defaulted silently.
+ */
+async function chooseRoot() {
+  const existing = savedRoot()
+  if (existing) return existing
+
+  // Piped or non-interactive (CI, `npx seyes < /dev/null`): take the default
+  // rather than hanging on a prompt nobody can answer.
+  if (!process.stdin.isTTY) {
+    saveRoot(documentsRoot)
+    return documentsRoot
+  }
+
+  process.stdout.write(`
+  Seyes keeps your writing as plain markdown files on this computer.
+  Nothing is uploaded, and you can move or delete the folder any time.
+
+  Where should they live?
+
+    1  Documents/Seyes                        (recommended)
+    2  Documents/Seyes, with a shortcut on your Desktop
+    3  Desktop/Seyes
+
+`)
+
+  // Ctrl+D or Ctrl+C at the prompt should take the default quietly, not dump
+  // a stack trace at someone who is thirty seconds into using the app.
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  let answer = ''
+  try {
+    answer = (await rl.question('  Choose 1, 2 or 3 [1]: ')).trim()
+  } catch {
+    process.stdout.write('\n')
+  } finally {
+    rl.close()
+  }
+
+  const root = answer === '3' ? path.join(desktop, 'Seyes') : documentsRoot
+
+  if (answer === '2') {
+    const link = path.join(desktop, 'Seyes')
+    try {
+      fs.mkdirSync(documentsRoot, { recursive: true })
+      if (!fs.existsSync(link)) fs.symlinkSync(documentsRoot, link, 'dir')
+    } catch {
+      process.stdout.write('  (Could not put a shortcut on the Desktop, carrying on.)\n')
+    }
+  }
+
+  saveRoot(root)
+  process.stdout.write(`\n  Your writing will live in ${root}\n`)
+  return root
 }
 
 const FIRST_NOTE = `# Welcome
@@ -58,7 +125,7 @@ function ensureBuilt() {
   }
 }
 
-const writingRoot = configuredRoot()
+const writingRoot = await chooseRoot()
 seed(writingRoot)
 ensureBuilt()
 
