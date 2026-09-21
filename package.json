@@ -28,7 +28,7 @@
     "node": ">=20"
   },
   "bin": {
-    "seyes": "./bin/seyes.mjs"
+    "seyes": "bin/seyes.mjs"
   },
   "files": [
     "bin",
