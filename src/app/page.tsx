@@ -23,9 +23,16 @@ export default function Home() {
   widthRef.current = width
 
   const [pulse, setPulse] = useState(0)
+  // Serialized copy of the last tree we rendered. Writing a note fires a
+  // watch event, but the tree itself is usually unchanged, so this avoids
+  // re-rendering the whole sidebar on every autosave.
+  const lastTree = useRef('')
 
   const refresh = useCallback(async () => {
     const data = await fetch('/api/tree').then((r) => r.json())
+    const next = JSON.stringify(data.tree ?? [])
+    if (next === lastTree.current) return
+    lastTree.current = next
     setTree(data.tree ?? [])
     setPulse((n) => n + 1)
   }, [])
@@ -37,7 +44,6 @@ export default function Home() {
   useEffect(() => {
     // Initial data fetch on mount: synchronizing with the external
     // filesystem via /api/tree, not a render-driven cascade.
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time fetch of the tree on mount
     void refresh()
   }, [refresh])
 

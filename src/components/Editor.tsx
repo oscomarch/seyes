@@ -1,10 +1,28 @@
 'use client'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { EditorContent, useEditor } from '@tiptap/react'
 import { browserExtensions } from '@/lib/editor/browserExtensions'
 import { useAutosave } from '@/hooks/useAutosave'
 import { useLiveFolder } from '@/hooks/useLiveFolder'
 import { BubbleToolbar } from './BubbleToolbar'
+
+/**
+ * While you are writing, the sidebar and topbar quietly recede, and they
+ * come back when you stop. It is not a mode you turn on: the app simply
+ * steps out of the way for as long as you are actually typing.
+ */
+let restTimer: ReturnType<typeof setTimeout> | null = null
+
+function breathe() {
+  document.documentElement.setAttribute('data-writing', '1')
+  if (restTimer) clearTimeout(restTimer)
+  restTimer = setTimeout(rest, 2400)
+}
+
+function rest() {
+  if (restTimer) clearTimeout(restTimer)
+  document.documentElement.removeAttribute('data-writing')
+}
 
 export function Editor({ path, onRename }: { path: string; onRename: (to: string) => void }) {
   const [markdown, setMarkdown] = useState('')
@@ -16,7 +34,12 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
     content: '',
     immediatelyRender: false,
     editorProps: { attributes: { class: 'prose-body' } },
-    onUpdate: ({ editor }) => setMarkdown(editor.storage.markdown.getMarkdown()),
+    onUpdate: ({ editor }) => {
+      setMarkdown(editor.storage.markdown.getMarkdown())
+      breathe()
+    },
+    onFocus: () => breathe(),
+    onBlur: () => rest(),
   })
 
   useEffect(() => {
@@ -44,19 +67,29 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
   // If this note changes on disk (edited elsewhere, synced, reverted), take
   // the new version, but never while the user is mid-edit: unsaved typing
   // always wins over what is on disk.
+  const latest = useRef(markdown)
+  // Latest-value ref, read only by the live-update handler below (which runs
+  // from a server-sent event, never during render). Same pattern as the
+  // sidebar width ref in page.tsx.
+  // eslint-disable-next-line react-hooks/refs -- latest-value ref read outside render by the watch handler
+  latest.current = markdown
+
   const adopt = useCallback(() => {
     if (!editor || !loaded || editor.isFocused) return
     fetch(`/api/note?path=${encodeURIComponent(path)}`)
       .then((r) => r.json())
       .then(({ content }) => {
-        if (typeof content !== 'string' || content === markdown) return
+        if (typeof content !== 'string' || content === latest.current) return
         editor.commands.setContent(editor.storage.markdown.parser.parse(content))
         setMarkdown(content)
       })
       .catch(() => {})
-  }, [editor, loaded, path, markdown])
+  }, [editor, loaded, path])
 
   useLiveFolder(adopt)
+
+  // Leaving a note should never leave the chrome faded out.
+  useEffect(() => rest, [])
 
   const state = useAutosave(async () => {
     if (!loaded) return

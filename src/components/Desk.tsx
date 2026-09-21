@@ -101,6 +101,13 @@ export function Desk({
   return (
     <div className="desk">
       <div className="desk-sheet">
+        <div className="desk-date">
+          {new Date().toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+          })}
+        </div>
         <h1 className="desk-title">{greeting()}.</h1>
 
         {data && data.totals.notes > 0 ? (

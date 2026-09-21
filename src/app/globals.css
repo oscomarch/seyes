@@ -427,3 +427,58 @@ button { font-family: inherit; }
   color: var(--muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+
+/* ---------- paper, and getting out of the way ---------- */
+
+/*
+ * A barely-there grain over the whole surface. Real paper is never perfectly
+ * flat, and this is the cheapest way to stop the screen reading as a slab of
+ * solid colour. Generated inline, so it costs no request and no image file.
+ */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='0.035'/%3E%3C/svg%3E");
+}
+:root[data-theme="dark"] body::before { opacity: 0.85; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) body::before { opacity: 0.85; }
+}
+.shell { position: relative; z-index: 1; }
+
+/*
+ * A typewriter caret: solid and warm rather than a thin blinking hairline.
+ * `caret-shape` is still new, so the colour is set independently and a
+ * browser without it simply gets an amber line instead of an amber block.
+ */
+.ProseMirror, .title {
+  caret-color: var(--accent);
+  caret-shape: block;
+}
+
+/*
+ * While you are writing, the chrome recedes. Moving the pointer back over it
+ * brings it straight back, so nothing is ever out of reach.
+ */
+.sidebar-slot, .topbar, .resizer {
+  transition: opacity 320ms ease;
+}
+:root[data-writing="1"] .sidebar-slot,
+:root[data-writing="1"] .topbar,
+:root[data-writing="1"] .resizer {
+  opacity: 0.28;
+  transition: opacity 900ms ease;
+}
+:root[data-writing="1"] .sidebar-slot:hover,
+:root[data-writing="1"] .topbar:hover {
+  opacity: 1;
+  transition: opacity 160ms ease;
+}
+
+/* The date above the greeting on the desk. */
+.desk-date {
+  font-family: var(--writing-font);
+  font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
