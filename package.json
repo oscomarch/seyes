@@ -33,7 +33,6 @@
   "files": [
     "bin",
     "src",
-    "public",
     "next.config.ts",
     "tsconfig.json",
     "next-env.d.ts",
