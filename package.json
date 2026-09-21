@@ -1,6 +1,6 @@
 {
   "name": "seyes-app",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A local-first writing app. Your notes are plain markdown files on your own machine, and nothing ever leaves it.",
   "keywords": [
     "writing",
@@ -41,9 +41,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "dev": "next dev -H 127.0.0.1",
-    "build": "next build",
-    "start": "next start -H 127.0.0.1",
+    "dev": "NEXT_TELEMETRY_DISABLED=1 next dev -H 127.0.0.1",
+    "build": "NEXT_TELEMETRY_DISABLED=1 next build",
+    "start": "NEXT_TELEMETRY_DISABLED=1 next start -H 127.0.0.1",
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",

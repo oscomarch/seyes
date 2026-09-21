@@ -4,6 +4,8 @@ Your writing, on your machine, in files you own.
 
 Seyes is an interface over a folder. Every note is a plain markdown file in
 `~/Documents/Seyes`. There is no account, no database, and no network call.
+The server binds to localhost only, and Next.js build telemetry is switched
+off, so nothing about you or your writing is ever sent anywhere.
 Delete the app and your writing is still sitting there, readable in any editor.
 
 ## Run it

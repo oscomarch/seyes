@@ -17,6 +17,11 @@ import { fileURLToPath } from 'node:url'
 const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
 const port = process.env.PORT ?? '3000'
 
+// Next.js collects anonymous build telemetry by default. Seyes promises that
+// nothing leaves the machine, and a build phoning home would make that untrue,
+// so it is switched off for every child process we start.
+process.env.NEXT_TELEMETRY_DISABLED = '1'
+
 /* ---------------------------- terminal styling ---------------------------- */
 
 // Honour NO_COLOR and dumb/piped terminals: the output still reads fine,
