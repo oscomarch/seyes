@@ -18,10 +18,7 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset=".github/media/seyes-dark.png">
-    <img src=".github/media/seyes.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper.">
-  </picture>
+  <img src=".github/media/seyes-window.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper.">
 </p>
 
 ## Why I made it
