@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seyes</title>
+<meta name="description" content="A small writing app for the Mac. Your writing stays in plain files on your own computer.">
+<meta property="og:title" content="Seyes">
+<meta property="og:description" content="A small writing app for the Mac. Your writing stays in plain files on your own computer.">
+<meta property="og:image" content="https://oscomarch.github.io/seyes/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="favicon.png">
+<style>
+  :root {
+    --paper: #f7f5ef; --card: #fdfcf8; --ink: #17110b; --muted: #7d766b;
+    --rule: #ddd6c8; --rule-strong: #c3baa8; --accent: #2f4d86;
+    --ruling: rgba(70, 105, 160, 0.10); --margin: rgba(170, 70, 60, 0.28);
+    --danger: #a3392c;
+    --font: "Courier New", Courier, monospace;
+    --system: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #14100c; --card: #1c1712; --ink: #efe3d2; --muted: #9a8a74;
+      --rule: #2f2720; --rule-strong: #46392d; --accent: #d79a5b;
+      --ruling: rgba(214, 156, 96, 0.08); --margin: rgba(214, 112, 72, 0.32);
+      --danger: #e0826c;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font-family: var(--font); font-size: 15px; line-height: 1.75;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+  .col { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  /* Séyès ruling behind the top of the page, with its rust margin line. */
+  .sheet {
+    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
+    mask-image: linear-gradient(to bottom, #000 70%, transparent);
+    background-image:
+      linear-gradient(to right, transparent 0, transparent calc(50% - 392px), var(--margin) calc(50% - 392px), var(--margin) calc(50% - 391px), transparent calc(50% - 391px)),
+      repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--ruling) 31px, var(--ruling) 32px);
+  }
+  @media (max-width: 840px) { .sheet { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--ruling) 31px, var(--ruling) 32px); } }
+
+  header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
+  .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; }
+  .mark img { width: 30px; height: 30px; }
+  header nav a { font-size: 13px; color: var(--muted); text-decoration: none; margin-left: 20px; }
+  header nav a:hover { color: var(--ink); }
+
+  .hero { padding: 72px 0 28px; }
+  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 20px; font-weight: 700; }
+  .lede { font-size: 17px; color: var(--muted); margin: 0 0 36px; max-width: 34em; }
+  .download {
+    display: inline-flex; align-items: center; gap: 12px;
+    background: var(--ink); color: var(--paper); text-decoration: none;
+    font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 15px 24px; border-radius: 2px;
+  }
+  .download:hover { opacity: 0.88; }
+  .download svg { width: 17px; height: 17px; }
+  .meta { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
+  .meta a { color: var(--ink); }
+
+  .shot { max-width: 1100px; margin: -8px auto 0; padding: 0 12px; }
+  .shot img { width: 100%; height: auto; display: block; }
+
+  section { padding: 64px 0 8px; }
+  h2 { font-size: 23px; margin: 0 0 12px; }
+  section > .col > p { color: var(--muted); margin: 0 0 22px; }
+  section > .col > p strong { color: var(--ink); font-weight: 700; }
+
+  ol.steps { list-style: none; counter-reset: step; margin: 32px 0 0; padding: 0; }
+  ol.steps > li { counter-increment: step; position: relative; padding: 0 0 36px 52px; }
+  ol.steps > li::before {
+    content: counter(step); position: absolute; left: 0; top: 0;
+    width: 32px; height: 32px; border: 1px solid var(--rule-strong); border-radius: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--card);
+  }
+  ol.steps h3 { font-size: 16px; margin: 3px 0 6px; }
+  ol.steps p { margin: 0 0 14px; color: var(--muted); }
+  ol.steps p b { color: var(--ink); }
+  .warn { color: var(--danger) !important; }
+
+  /* Small drawings of what macOS shows, so the steps can be followed at a glance. */
+  .mock { font-family: var(--system); font-size: 13px; line-height: 1.4; color: #1d1d1f; }
+  .alert {
+    width: 262px; background: #ececec; border-radius: 14px; padding: 18px 16px 14px; text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.2);
+  }
+  .alert img { width: 52px; height: 52px; margin-bottom: 8px; }
+  .alert .t { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
+  .alert .b { font-size: 11.5px; color: #3a3a3c; margin-bottom: 14px; }
+  .alert .btn { display: block; border-radius: 7px; padding: 5px; margin-top: 7px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.15); }
+  .alert .btn.go { background: #0a84ff; color: #fff; box-shadow: 0 0 0 3px rgba(10,132,255,0.35); }
+  .alert .btn.no { color: #6e6e73; text-decoration: line-through; text-decoration-color: rgba(163,57,44,0.8); }
+  .pane {
+    max-width: 440px; background: #f5f5f7; border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.2);
+  }
+  .pane .crumb { font-weight: 700; margin-bottom: 10px; }
+  .pane .row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 8px; padding: 10px 12px; }
+  .pane .row span { flex: 1; font-size: 12px; }
+  .pane .row em { font-style: normal; background: #fff; border-radius: 6px; padding: 3px 10px; font-size: 12px; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25), 0 0 0 3px rgba(10,132,255,0.45); }
+  .caption { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+
+  .aside { border-left: 2px solid var(--rule-strong); padding: 2px 0 2px 16px; margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 28px; }
+  .fact { border: 1px solid var(--rule); background: var(--card); border-radius: 2px; padding: 16px 16px 14px; }
+  .fact h3 { font-size: 14px; margin: 0 0 6px; }
+  .fact p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.65; }
+
+  details { margin-top: 18px; font-size: 13px; color: var(--muted); }
+  summary { cursor: pointer; color: var(--ink); }
+  code { font-family: var(--font); font-size: 12px; word-break: break-all; background: var(--card); border: 1px solid var(--rule); padding: 2px 5px; border-radius: 2px; }
+
+  footer { margin-top: 64px; border-top: 1px solid var(--rule); padding: 28px 0 48px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="col">
+    <header>
+      <a class="mark" href="#"><img src="icon.png" alt="">seyes</a>
+      <nav><a href="#install">Install</a><a href="https://github.com/oscomarch/seyes">GitHub</a></nav>
+    </header>
+
+    <div class="hero">
+      <h1>A place to write, on your own computer.</h1>
+      <p class="lede">Seyes keeps everything you write as plain text files in a folder on your Mac. There's no account and no cloud, and nothing to sign up for.</p>
+      <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
+        Download for Mac
+      </a>
+      <p class="meta">Free. Version 0.5, 72 MB. macOS 13 or later, Apple Silicon and Intel.<br>macOS asks you to confirm it the first time. <a href="#install">Here's how, it takes a minute.</a></p>
+    </div>
+  </div>
+</div>
+
+<div class="shot">
+  <picture>
+    <source srcset="seyes-dark.png" media="(prefers-color-scheme: dark)">
+    <img src="seyes-light.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper." width="1300" height="880">
+  </picture>
+</div>
+
+<section id="install">
+  <div class="col">
+    <h2>Installing</h2>
+    <p>Seyes is new and isn't signed by Apple yet, so the first time you open it macOS asks you to confirm. This is exactly what you'll see. <strong>You only do it once.</strong></p>
+
+    <ol class="steps">
+      <li>
+        <h3>Open the download and drag Seyes into Applications</h3>
+        <p>Open <b>Seyes.dmg</b> from your Downloads folder. A window appears with Seyes and your Applications folder. Drag Seyes onto Applications.</p>
+      </li>
+
+      <li>
+        <h3>Open Seyes, then click Done</h3>
+        <p>Open Seyes from Applications. macOS shows a box saying <b>"Seyes" Not Opened</b>. Click <b>Done</b>.</p>
+        <p class="warn">Don't click Move to Trash. That throws the app away and you'd have to start again.</p>
+        <div class="mock alert" aria-hidden="true">
+          <img src="icon.png" alt="">
+          <div class="t">"Seyes" Not Opened</div>
+          <div class="b">Apple could not verify "Seyes" is free of malware that may harm your Mac or compromise your privacy.</div>
+          <span class="btn go">Done</span>
+          <span class="btn no">Move to Trash</span>
+        </div>
+        <p class="caption">What you'll see. Click Done.</p>
+      </li>
+
+      <li>
+        <h3>Allow it in System Settings</h3>
+        <p>Open <b>System Settings</b> and click <b>Privacy &amp; Security</b> in the sidebar. Scroll down to the Security section. Next to the line about Seyes, click <b>Open Anyway</b>.</p>
+        <div class="mock pane" aria-hidden="true">
+          <div class="crumb">Privacy &amp; Security</div>
+          <div class="row"><span>"Seyes" was blocked to protect your Mac.</span><em>Open Anyway</em></div>
+        </div>
+        <p class="caption">Near the bottom of Privacy &amp; Security.</p>
+      </li>
+
+      <li>
+        <h3>Confirm, and start writing</h3>
+        <p>macOS asks one last time. Click <b>Open Anyway</b> and enter your password or use Touch ID. Seyes opens and asks where to keep your writing. It suggests a folder that stays on your Mac. From now on it opens like any other app.</p>
+      </li>
+    </ol>
+
+    <p class="aside">Clicked Move to Trash by accident? Open the Trash, drag Seyes back into Applications, and start again from step 2.</p>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>Why macOS warns you</h2>
+    <p>Apple lets apps skip this warning if the developer pays for a yearly certificate and sends each version to Apple to be scanned. Seyes doesn't have one yet. The warning means Apple hasn't checked the app. It doesn't mean something is wrong with it.</p>
+    <p>If you'd rather check for yourself, all of Seyes' code is <a href="https://github.com/oscomarch/seyes">on GitHub</a>, and the file you download is built from it.</p>
+    <details>
+      <summary>Check that your download is the real one</summary>
+      <p>In Terminal, run <code>shasum -a 256 ~/Downloads/Seyes.dmg</code>. The result should match the one listed on the <a href="https://github.com/oscomarch/seyes/releases/latest">release page</a>. For version 0.5 it's <code>7c2fbe4d50e122db154bf3b6b2e7fc739c3a044c32c6dcb1480bcfda0464071b</code>.</p>
+    </details>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>What happens to your writing</h2>
+    <p>Seyes is a window onto a folder. Your writing never lives inside the app.</p>
+    <div class="facts">
+      <div class="fact"><h3>Plain files</h3><p>Every note is a .md file. Open it in TextEdit, back it up, or put it in Git.</p></div>
+      <div class="fact"><h3>Stays on your Mac</h3><p>No account and no analytics. Seyes only goes online if you choose Check for Updates.</p></div>
+      <div class="fact"><h3>Yours to keep</h3><p>Stop using Seyes tomorrow and your writing is still right there in its folder.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="col">
+    <h2>Updating and removing</h2>
+    <p>To update, choose <strong>Check for Updates</strong> in the Seyes menu. If there's a new version it opens the download, and you drag it into Applications to replace the old one. Until Seyes is signed, macOS asks you to confirm each new version the same way as the first time. Your writing isn't touched.</p>
+    <p>To remove Seyes, drag it from Applications to the Trash. Your writing stays in its folder.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="col">Seyes is free and open source. The code is <a href="https://github.com/oscomarch/seyes">on GitHub</a>, under the MIT license.</div>
+</footer>
+
+</body>
+</html>
