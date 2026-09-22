@@ -4,6 +4,7 @@ Turn a poem into a vertical video of it being typed into Seyes.
 
     python3 promo/make.py promo/poems/hope.md        # one poem
     python3 promo/make.py promo/poems/*.md           # all of them
+    python3 promo/make.py --keys soft <poem>         # the first, lighter key sound
 
 Writes promo/out/<poem>.mp4: 1080 x 1920, 30 fps, with a soft key sound
 under every keystroke and no music (music goes on in TikTok or Instagram,
@@ -14,6 +15,7 @@ with human rhythm (faster inside words, pauses at commas and line ends, the
 odd typo caught and fixed). That one plan drives both the picture, drawn
 frame by frame by scene.html, and the sound, placed at the same instants.
 """
+import base64
 import hashlib
 import json
 import random
@@ -122,10 +124,125 @@ def plan(title, body, author, seed):
 
 
 # ---------------------------------------------------------------- sound
+#
+# Two sounds. "natural" (the default) is modelled on a laptop keyboard heard
+# from a little way off: each key has its own voice, keys sit left to right
+# in stereo, soft or firm with the rhythm, in a small room. "soft" is the
+# first version, kept because it was liked: lighter and more even.
+# Pick one with --keys soft.
 
-def key_sound(kind, rng):
-    """One keystroke: a bright tick as the key hits, a soft wooden thud under
-    it, and a faint click as it comes back up."""
+LAYOUT = ["1234567890", "qwertyuiop", "asdfghjkl", "zxcvbnm"]
+KEY_X = {k: -0.85 + 1.7 * (c + 0.4 * r) / 10.5 for r, row in enumerate(LAYOUT) for c, k in enumerate(row)}
+KEY_X.update({" ": 0.0, "\n": 0.78, "back": 0.82, "arrow": 0.7})
+
+
+def band_noise(rng, n, lo, hi):
+    spec = np.fft.rfft(rng.standard_normal(n))
+    freqs = np.fft.rfftfreq(n, 1 / RATE)
+    spec[(freqs < lo) | (freqs > hi)] = 0
+    out = np.fft.irfft(spec, n)
+    return out / (np.max(np.abs(out)) + 1e-9)
+
+
+def ring(freq, tau, n, phase=0.0):
+    tt = np.arange(n) / RATE
+    return np.sin(2 * np.pi * freq * tt + phase) * np.exp(-tt / tau)
+
+
+def natural_key(key, rng):
+    """A scissor-switch key: the fingertip's tap, the cap bottoming out on the
+    frame (with this key's own resonance), a faint thud through the chassis,
+    and the quieter click of it springing back."""
+    voice = random.Random(key)  # the same key always has the same character
+    f1, f2 = voice.uniform(1300, 2500), voice.uniform(3100, 5200)
+    thud = voice.uniform(135, 200)
+    big = key in (" ", "\n")
+    if big:
+        f1, thud = voice.uniform(650, 950), voice.uniform(95, 125)
+    n = int(0.2 * RATE)
+    out = np.zeros(n)
+    out += 0.7 * band_noise(rng, n, 1500, 12000) * np.exp(-np.arange(n) / RATE / 0.0005)
+    hit = int(rng.uniform(0.0015, 0.0035) * RATE)
+    m = n - hit
+    bottom = (0.55 * ring(f1 * rng.uniform(0.98, 1.02), 0.0032, m, rng.uniform(0, 6))
+              + 0.3 * ring(f2 * rng.uniform(0.98, 1.02), 0.0018, m, rng.uniform(0, 6))
+              + 0.35 * band_noise(rng, m, f1 * 0.7, f1 * 1.5) * np.exp(-np.arange(m) / RATE / 0.004))
+    out[hit:] += bottom
+    out[hit:] += (0.45 if big else 0.22) * ring(thud, 0.009 if not big else 0.014, m)
+    if big:  # the stabiliser wire's little rattle
+        r = hit + int(rng.uniform(0.005, 0.008) * RATE)
+        out[r:] += 0.25 * band_noise(rng, n - r, 900, 3500) * np.exp(-np.arange(n - r) / RATE / 0.006)
+    up = int(rng.uniform(0.045, 0.085) * RATE)
+    out[up:] += 0.3 * (ring(f1 * 1.08, 0.002, n - up) + 0.6 * band_noise(rng, n - up, 2000, 9000)
+                       * np.exp(-np.arange(n - up) / RATE / 0.0006))
+    return out
+
+
+def trackpad_click(rng, up=False):
+    """The trackpad's click, pressed or let go: a short low knock and a tick."""
+    n = int(0.06 * RATE)
+    tt = np.arange(n) / RATE
+    out = (0.5 if up else 0.8) * np.sin(2 * np.pi * 150 * tt) * np.exp(-tt / 0.004)
+    out += (0.25 if up else 0.4) * band_noise(rng, n, 2000, 7000) * np.exp(-tt / 0.0004)
+    return out * 0.55
+
+
+def place(track, sound, t, pan, delay=0.00025):
+    """Put a mono sound into the stereo track at t, panned -1 (left) to 1 (right)."""
+    i = int(t * RATE)
+    left, right = np.cos((pan + 1) * np.pi / 4), np.sin((pan + 1) * np.pi / 4)
+    d = int(abs(pan) * delay * RATE)  # the far ear hears it a touch later
+    li, ri = (i + d, i) if pan > 0 else (i, i + d)
+    for ch, at, gain in ((0, li, left), (1, ri, right)):
+        seg = sound[: max(0, len(track) - at)]
+        track[at:at + len(seg), ch] += gain * seg
+
+
+def room(track, rng):
+    """A small room: a few early reflections, a short soft tail, a mic that
+    doesn't hear the very top, and the faint hiss every recording has."""
+    n = int(0.16 * RATE)
+    ir = np.zeros(n)
+    ir[0] = 1.0
+    for ms, g in ((7, 0.22), (13, 0.15), (19, 0.11), (27, 0.08), (38, 0.05)):
+        ir[int(ms / 1000 * RATE)] += g * rng.choice([-1, 1])
+    ir += rng.standard_normal(n) * np.exp(-np.arange(n) / RATE / 0.035) * 0.012
+    out = np.stack([np.convolve(track[:, c], ir)[: len(track)] for c in range(2)], axis=1)
+    spec = np.fft.rfft(out, axis=0)
+    freqs = np.fft.rfftfreq(len(out), 1 / RATE)
+    spec *= (1 / np.sqrt(1 + (freqs / 11000) ** 4))[:, None]
+    out = np.fft.irfft(spec, len(out), axis=0)
+    out *= 0.5 / (np.max(np.abs(out)) + 1e-9)
+    hiss = np.cumsum(rng.standard_normal((len(out), 2)), axis=0)
+    hiss -= np.convolve(hiss[:, 0], np.ones(400) / 400, mode="same")[:, None]
+    hiss *= 10 ** (-64 / 20) / (np.std(hiss) + 1e-9)
+    return out + hiss
+
+
+def natural_soundtrack(ops, seconds, seed, finale):
+    rng = np.random.default_rng(seed)
+    track = np.zeros((int((seconds + 0.5) * RATE), 2))
+    bank = {}
+    prev = None
+    for t, _field, op, ch in ops:
+        key = "back" if op == "-" else ch.lower()
+        if key not in bank:
+            bank[key] = [natural_key(key, rng) for _ in range(3)]
+        # Soft when the fingers are flying, firmer after a pause.
+        gap = 0.5 if prev is None else t - prev
+        velocity = np.clip(0.72 + 0.5 * min(gap, 0.6), 0.75, 1.05) * rng.uniform(0.9, 1.08)
+        place(track, bank[key][rng.integers(3)] * velocity, t, KEY_X.get(key, 0.0) + rng.uniform(-0.05, 0.05))
+        prev = t
+    for t in (finale["press"], finale["boldAt"] - 0.05, finale["markAt"] - 0.05):
+        place(track, trackpad_click(rng), t, 0.15)
+    for t in (finale["release"], finale["boldAt"] + 0.05, finale["markAt"] + 0.05):
+        place(track, trackpad_click(rng, up=True), t, 0.15)
+    place(track, natural_key("arrow", rng) * 0.9, finale["deselect"], KEY_X["arrow"])
+    return room(track, rng)
+
+
+def soft_key(kind, rng):
+    """The first sound: a bright tick, a soft wooden thud, a faint release."""
     n = int(0.16 * RATE)
     tt = np.arange(n) / RATE
     out = np.zeros(n)
@@ -133,13 +250,7 @@ def key_sound(kind, rng):
     def tick(at, amp, tau, lo, hi):
         start = int(at * RATE)
         m = n - start
-        noise = rng.standard_normal(m)
-        spec = np.fft.rfft(noise)
-        freqs = np.fft.rfftfreq(m, 1 / RATE)
-        spec[(freqs < lo) | (freqs > hi)] = 0
-        burst = np.fft.irfft(spec, m)
-        burst /= np.max(np.abs(burst)) + 1e-9
-        out[start:] += amp * burst * np.exp(-np.arange(m) / RATE / tau)
+        out[start:] += amp * band_noise(rng, m, lo, hi) * np.exp(-np.arange(m) / RATE / tau)
 
     thud = {"key": 230, "space": 150, "enter": 125, "back": 200}[kind] * rng.uniform(0.93, 1.07)
     weight = {"key": 1.0, "space": 1.25, "enter": 1.35, "back": 1.0}[kind]
@@ -150,28 +261,31 @@ def key_sound(kind, rng):
     return out * rng.uniform(0.8, 1.1)
 
 
-def soundtrack(ops, seconds, seed):
+def soft_soundtrack(ops, seconds, seed, finale):
     rng = np.random.default_rng(seed)
-    bank = {kind: [key_sound(kind, rng) for _ in range(16)] for kind in ("key", "space", "enter", "back")}
+    bank = {kind: [soft_key(kind, rng) for _ in range(16)] for kind in ("key", "space", "enter", "back")}
     track = np.zeros(int((seconds + 0.5) * RATE))
-    for t, _field, op, ch in ops:
-        kind = "back" if op == "-" else "enter" if ch == "\n" else "space" if ch == " " else "key"
+    events = [(t, "back" if op == "-" else "enter" if ch == "\n" else "space" if ch == " " else "key") for t, _f, op, ch in ops]
+    events += [(finale[k], "key") for k in ("press", "boldAt", "markAt", "deselect")]
+    for t, kind in events:
         s = bank[kind][rng.integers(len(bank[kind]))]
         i = int(t * RATE)
-        track[i:i + len(s)] += s[: len(track) - i]
-    # A small room around the keyboard, so it doesn't sound pasted on.
+        track[i:i + len(s)] += s[: max(0, len(track) - i)]
     ir_len = int(0.22 * RATE)
     ir = rng.standard_normal(ir_len) * np.exp(-np.arange(ir_len) / RATE / 0.05) * 0.05
     ir[0] = 1.0
     track = np.convolve(track, ir)[: len(track)]
-    track *= 0.5 / (np.max(np.abs(track)) + 1e-9)  # peaks at about -6 dB, room for music
-    return track
+    track *= 0.5 / (np.max(np.abs(track)) + 1e-9)
+    return np.stack([track, track], axis=1)
+
+
+SOUNDS = {"natural": natural_soundtrack, "soft": soft_soundtrack}
 
 
 def write_wav(path, samples):
     data = (np.clip(samples, -1, 1) * 32767).astype("<i2")
     with wave.open(str(path), "wb") as w:
-        w.setnchannels(1)
+        w.setnchannels(2)
         w.setsampwidth(2)
         w.setframerate(RATE)
         w.writeframes(data.tobytes())
@@ -198,23 +312,46 @@ def capture_tool():
     return tool
 
 
-def make(path):
+def finale_times(end, author):
+    """After the name is typed: the pointer comes in, drags back across the
+    name to select it, clicks B, then H, and an arrow key lets go."""
+    f = {"pointerIn": end + 0.55}
+    f["press"] = f["pointerIn"] + 0.75
+    f["release"] = f["press"] + min(0.9, 0.35 + 0.035 * len(author))
+    f["toolbar"] = f["release"] + 0.12
+    f["boldMove"] = f["toolbar"] + 0.3
+    f["boldAt"] = f["boldMove"] + 0.6
+    f["markMove"] = f["boldAt"] + 0.45
+    f["markAt"] = f["markMove"] + 0.5
+    f["deselect"] = f["markAt"] + 0.7
+    f["reveal"] = f["deselect"] + 0.5
+    return {k: round(v, 4) for k, v in f.items()}
+
+
+def make(path, keys="natural"):
     meta, body = read_poem(path)
     title, author = meta.get("title", path.stem), meta.get("author", "")
     seed = int(hashlib.sha256(path.read_bytes()).hexdigest(), 16) % 2**32
     ops, end = plan(title, body, author, seed)
-    seconds = end + 2.8  # hold on the finished poem
+    finale = finale_times(end, author)
+    seconds = finale["reveal"] + 3.0  # hold on the finished poem
     font, line_height, title_font = sizes(title, body, author)
 
     OUT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=BUILD if BUILD.exists() else None) as tmp:
         tmp = Path(tmp)
-        timeline = {"mood": meta.get("mood", "dusk"), "fontSize": font, "lineHeight": line_height, "end": end, "ops": ops}
+        timeline = {
+            "mood": meta.get("mood", "dusk"), "fontSize": font, "lineHeight": line_height,
+            "ops": ops, "finale": finale,
+            "clock": meta.get("clock", "Tue 22 Sep  21:14"), "day": meta.get("day", "22"),
+        }
         page = (HERE / "scene.html").read_text(encoding="utf-8")
+        icon = base64.b64encode((HERE.parent / "docs" / "icon.png").read_bytes()).decode()
+        page = page.replace("__ICON__", f"data:image/png;base64,{icon}")
         page = page.replace("<script>", f"<script>window.TIMELINE = {json.dumps(timeline, ensure_ascii=False)}</script>\n<script>", 1)
         page = page.replace(".title { font-weight: 700; font-size: 21px;", f".title {{ font-weight: 700; font-size: {title_font}px;")
         (tmp / "scene.html").write_text(page, encoding="utf-8")
-        write_wav(tmp / "keys.wav", soundtrack(ops, seconds, seed))
+        write_wav(tmp / "keys.wav", SOUNDS[keys](ops, seconds, seed, finale))
 
         print(f"{path.stem}: {seconds:.1f}s, {len(ops)} keystrokes, text {font}px", flush=True)
         video = OUT / f"{path.stem}.mp4"
@@ -236,5 +373,11 @@ def make(path):
 
 if __name__ == "__main__":
     BUILD.mkdir(exist_ok=True)
-    for arg in sys.argv[1:] or sorted(str(p) for p in (HERE / "poems").glob("*.md")):
-        make(Path(arg))
+    args = sys.argv[1:]
+    keys = "natural"
+    if "--keys" in args:
+        i = args.index("--keys")
+        keys = args[i + 1]
+        del args[i:i + 2]
+    for arg in args or sorted(str(p) for p in (HERE / "poems").glob("*.md")):
+        make(Path(arg), keys)

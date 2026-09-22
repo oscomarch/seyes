@@ -2,6 +2,7 @@
 title: Demain, dès l'aube
 author: Victor Hugo
 mood: dawn
+clock: Tue 22 Sep  06:42
 ---
 Demain, dès l'aube, à l'heure où blanchit la campagne,
 Je partirai. Vois-tu, je sais que tu m'attends.

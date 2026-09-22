@@ -7,8 +7,19 @@ python3 promo/make.py promo/poems/hope.md
 ```
 
 Each poem becomes `promo/out/<poem>.mp4`, 1080 x 1920 at 30 fps, about 40 seconds.
-It has a soft key sound under every keystroke and no music. Add the music in
-TikTok or Instagram when you post, where it's licensed.
+The Seyes window sits on a generated background between a menu bar and a
+Dock. When the poem is done, the author's name is selected by hand, made bold
+and highlighted from Seyes' own formatting bar. There's a key sound under
+every keystroke and no music. Add the music in TikTok or Instagram when you
+post, where it's licensed.
+
+The key sound is `natural` by default, each key with its own voice, placed
+left to right in stereo, in a small room. The first, lighter sound is still
+there.
+
+```
+python3 promo/make.py --keys soft promo/poems/hope.md
+```
 
 ## Adding a poem
 
@@ -25,6 +36,7 @@ That perches in the soul -
 ```
 
 `mood` sets the background. It can be `dusk`, `dawn`, `forest`, `sea` or `ink`.
+`clock` is optional and sets the time in the menu bar, like `Tue 22 Sep  21:14`.
 
 Only use poems in the public domain. A safe rule is a poet who died more than
 70 years ago, which covers Dickinson, Whitman, Keats, Shakespeare, Blake,

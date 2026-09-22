@@ -2,6 +2,7 @@
 title: Hope is the thing with feathers
 author: Emily Dickinson
 mood: dusk
+clock: Tue 22 Sep  21:14
 ---
 "Hope" is the thing with feathers -
 That perches in the soul -
