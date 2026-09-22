@@ -592,9 +592,9 @@ Things for today
  * Until they're set, the download button just downloads.
  */
 const SEYES = {
-  supabaseUrl: '',            // https://xxxx.supabase.co
-  supabaseAnonKey: '',
-  posthogKey: '',             // phc_...
+  supabaseUrl: 'https://ozutybnwrpugqhlermox.supabase.co',
+  supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dXR5Ym53cnB1Z3FobGVybW94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUyNjgsImV4cCI6MjEwNTY2MTI2OH0.Jbi5YyGkG9wtlkfUK0XO46kcj2U4xBRo38ClJ0-fyLE',
+  posthogKey: 'phc_pVGUtchy7kXwosnk6sZdJNcCQozacrFiMVENt3iAbX9p',
   posthogHost: 'https://eu.i.posthog.com',
 }
 const DMG = 'https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg'
@@ -620,6 +620,9 @@ if (SEYES.posthogKey) {
       autocapture: false,
       capture_pageview: true,
       disable_session_recording: true,
+      disable_surveys: true,
+      capture_dead_clicks: false,
+      capture_exceptions: false,
     })
     ph.register({ source })
     posthog = ph
