@@ -159,8 +159,14 @@ const MOODS = {
   forest: 'radial-gradient(110% 70% at 85% 10%, #b8c69a 0%, transparent 55%), radial-gradient(100% 70% at 10% 95%, #1c2d22 0%, transparent 60%), linear-gradient(170deg, #4f6b4b 0%, #2f4634 55%, #172419 100%)',
   sea:    'radial-gradient(110% 70% at 15% 8%, #a9cfd0 0%, transparent 55%), radial-gradient(100% 70% at 90% 100%, #0c2233 0%, transparent 60%), linear-gradient(175deg, #5f97a3 0%, #2d5f73 55%, #10283a 100%)',
   ink:    'radial-gradient(110% 70% at 50% 0%, #3a3530 0%, transparent 60%), linear-gradient(180deg, #221e1a 0%, #0f0d0b 100%)',
+  summer: 'radial-gradient(110% 70% at 85% 5%, #fff1c9 0%, transparent 55%), radial-gradient(100% 70% at 5% 100%, #f2a97e 0%, transparent 60%), linear-gradient(170deg, #fbe3b0 0%, #f5c48f 50%, #e8937a 100%)',
+  night:  'radial-gradient(60% 35% at 75% 12%, rgba(190, 200, 255, 0.35) 0%, transparent 70%), radial-gradient(100% 70% at 10% 100%, #26316b 0%, transparent 65%), linear-gradient(175deg, #0b1028 0%, #141d45 55%, #2a2f66 100%)',
+  ember:  'radial-gradient(90% 60% at 50% 105%, #e07a3f 0%, transparent 60%), radial-gradient(110% 70% at 50% 0%, #3b2418 0%, transparent 60%), linear-gradient(180deg, #1c120d 0%, #3a1f14 60%, #6e3219 100%)',
+  autumn: 'radial-gradient(110% 70% at 85% 8%, #e0a25a 0%, transparent 55%), radial-gradient(100% 70% at 10% 95%, #5c2a18 0%, transparent 60%), linear-gradient(170deg, #b8632f 0%, #8a3f22 55%, #4a2317 100%)',
+  rose:   'radial-gradient(110% 70% at 15% 5%, #fde7ec 0%, transparent 55%), radial-gradient(100% 70% at 90% 100%, #d98ca3 0%, transparent 60%), linear-gradient(170deg, #f7d4dc 0%, #eeb3c3 50%, #c98aa6 100%)',
+  rain:   'radial-gradient(110% 70% at 50% 0%, #a9b5c2 0%, transparent 60%), radial-gradient(100% 70% at 90% 100%, #2c3a4a 0%, transparent 60%), linear-gradient(180deg, #7c8a99 0%, #4f5f70 55%, #2a3644 100%)',
 }
-const LIGHT = { dawn: true }  // light wallpapers get a dark menu bar, like macOS
+const LIGHT = { dawn: true, summer: true, rose: true }  // light wallpapers get a dark menu bar, like macOS
 
 const T = window.TIMELINE, F = T.finale
 const $ = (id) => document.getElementById(id)

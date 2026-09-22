@@ -4,8 +4,8 @@ Turn a poem into a vertical video of it being typed into Seyes.
 
     python3 promo/make.py promo/poems/hope.md        # one poem
     python3 promo/make.py promo/poems/*.md           # all of them
-    python3 promo/make.py --keys natural <poem>      # synthesised keys instead of the recording
-    python3 promo/make.py --keys soft <poem>         # the first, lighter key sound
+    python3 promo/make.py --keys real <poem>         # Oscar's recorded keyboard, in stereo
+    python3 promo/make.py --keys natural <poem>      # the synthesised stereo keyboard
 
 Writes promo/out/<poem>.mp4: 1080 x 1920, 30 fps, with a soft key sound
 under every keystroke and no music (music goes on in TikTok or Instagram,
@@ -127,8 +127,8 @@ def plan(title, body, author, seed):
 
 # ---------------------------------------------------------------- sound
 #
-# Three sounds. "real" (the default once promo/keys/bank.npz exists) is
-# Oscar's own keyboard, recorded and cut up by keys.py. "natural" is modelled on a laptop keyboard heard
+# Three sounds. "soft" (the default) is the first one, chosen to keep.
+# "real" is Oscar's own keyboard, recorded and cut up by keys.py. "natural" is modelled on a laptop keyboard heard
 # from a little way off: each key has its own voice, keys sit left to right
 # in stereo, soft or firm with the rhythm, in a small room. "soft" is the
 # first version, kept because it was liked: lighter and more even.
@@ -265,21 +265,25 @@ def soft_key(kind, rng):
 
 
 def soft_soundtrack(ops, seconds, seed, finale):
+    """The first sound, now in stereo: each key placed left to right where it
+    sits on the keyboard, like the others."""
     rng = np.random.default_rng(seed)
     bank = {kind: [soft_key(kind, rng) for _ in range(16)] for kind in ("key", "space", "enter", "back")}
-    track = np.zeros(int((seconds + 0.5) * RATE))
-    events = [(t, "back" if op == "-" else "enter" if ch == "\n" else "space" if ch == " " else "key") for t, _f, op, ch in ops]
-    events += [(finale[k], "key") for k in ("press", "boldAt", "markAt", "deselect")]
-    for t, kind in events:
-        s = bank[kind][rng.integers(len(bank[kind]))]
-        i = int(t * RATE)
-        track[i:i + len(s)] += s[: max(0, len(track) - i)]
+    track = np.zeros((int((seconds + 0.5) * RATE), 2))
+    events = []
+    for t, _f, op, ch in ops:
+        key = "back" if op == "-" else ch.lower()
+        kind = "back" if op == "-" else "enter" if ch == "\n" else "space" if ch == " " else "key"
+        events.append((t, kind, KEY_X.get(key, 0.0) + rng.uniform(-0.05, 0.05)))
+    events += [(finale[k], "key", 0.15) for k in ("press", "boldAt", "markAt")]
+    events.append((finale["deselect"], "key", KEY_X["arrow"]))
+    for t, kind, pan in events:
+        place(track, bank[kind][rng.integers(len(bank[kind]))], t, pan)
     ir_len = int(0.22 * RATE)
     ir = rng.standard_normal(ir_len) * np.exp(-np.arange(ir_len) / RATE / 0.05) * 0.05
     ir[0] = 1.0
-    track = np.convolve(track, ir)[: len(track)]
-    track *= 0.5 / (np.max(np.abs(track)) + 1e-9)
-    return np.stack([track, track], axis=1)
+    track = np.stack([np.convolve(track[:, c], ir)[: len(track)] for c in range(2)], axis=1)
+    return track * (0.5 / (np.max(np.abs(track)) + 1e-9))
 
 
 def real_soundtrack(ops, seconds, seed, finale):
@@ -320,7 +324,8 @@ def real_soundtrack(ops, seconds, seed, finale):
 
 
 SOUNDS = {"real": real_soundtrack, "natural": natural_soundtrack, "soft": soft_soundtrack}
-DEFAULT_KEYS = "real" if (HERE / "keys" / "bank.npz").exists() else "natural"
+# The first sound, the one Oscar chose to keep. The others stay a flag away.
+DEFAULT_KEYS = "soft"
 
 
 def write_wav(path, samples):
