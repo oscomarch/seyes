@@ -5,6 +5,7 @@ import { browserExtensions } from '@/lib/editor/browserExtensions'
 import { useAutosave } from '@/hooks/useAutosave'
 import { useLiveFolder } from '@/hooks/useLiveFolder'
 import { BubbleToolbar } from './BubbleToolbar'
+import { takeFresh } from '@/lib/client/fresh'
 
 /**
  * While you are writing, the sidebar and topbar quietly recede, and they
@@ -88,6 +89,15 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
 
   useLiveFolder(adopt)
 
+  // A note you just made opens with its title selected, so the first thing
+  // you type names it. Enter then moves you into the body.
+  const titleField = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!loaded || !takeFresh(path)) return
+    titleField.current?.focus()
+    titleField.current?.select()
+  }, [loaded, path])
+
   // Leaving a note should never leave the chrome faded out.
   useEffect(() => rest, [])
 
@@ -125,6 +135,7 @@ export function Editor({ path, onRename }: { path: string; onRename: (to: string
         </div>
       ) : (
       <input
+        ref={titleField}
         className="title"
         defaultValue={title}
         key={path}

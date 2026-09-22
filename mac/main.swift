@@ -1,5 +1,5 @@
 import AppKit
-import WebKit
+@preconcurrency import WebKit
 
 /*
  * A Mac wrapper around the Seyes server.
@@ -46,7 +46,7 @@ func freePort(from start: Int) -> Int {
     return start
 }
 
-final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScriptMessageHandler {
+final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
     var window: NSWindow!
     var webView: WKWebView!
     var server: Process?
@@ -92,6 +92,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             WKUserScript(source: Self.chromeScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
+        webView.uiDelegate = self
         webView.setValue(false, forKey: "drawsBackground")
         webView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -248,10 +249,72 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     """
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        if let body = message.body as? [String: Any], body["type"] as? String == "pickFolder" {
+            pickFolder(id: body["id"] as? String ?? "", prompt: body["prompt"] as? String ?? "")
+            return
+        }
         switch message.body as? String {
         case "drag": dragWindow()
         case "zoom": window.zoom(nil)
         default: break
+        }
+    }
+
+    /// The page asks for a folder (to write in, or to move the writing folder
+    /// into). A web page can't see real paths, so the app shows the standard
+    /// macOS picker as a sheet on the window and hands the path back.
+    func pickFolder(id: String, prompt: String) {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.message = prompt
+        panel.prompt = "Choose"
+        panel.beginSheetModal(for: window) { response in
+            let path = response == .OK ? panel.url?.path : nil
+            let detail: [String: Any] = ["id": id, "path": path ?? NSNull()]
+            guard let data = try? JSONSerialization.data(withJSONObject: detail),
+                  let json = String(data: data, encoding: .utf8) else { return }
+            self.webView.evaluateJavaScript(
+                "window.dispatchEvent(new CustomEvent('seyes:picked', { detail: \(json) }))")
+        }
+    }
+
+    // A WKWebView shows nothing for alert(), confirm() or prompt() unless the
+    // app draws them, and confirm() quietly answers "no". These draw them as
+    // sheets, so no page dialog can silently vanish.
+
+    func webView(_ webView: WKWebView, runJavaScriptAlertPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping () -> Void) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window) { _ in completionHandler() }
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptConfirmPanelWithMessage message: String,
+                 initiatedByFrame frame: WKFrameInfo, completionHandler: @escaping (Bool) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        alert.beginSheetModal(for: window) { completionHandler($0 == .alertFirstButtonReturn) }
+    }
+
+    func webView(_ webView: WKWebView, runJavaScriptTextInputPanelWithPrompt prompt: String,
+                 defaultText: String?, initiatedByFrame frame: WKFrameInfo,
+                 completionHandler: @escaping (String?) -> Void) {
+        let alert = NSAlert()
+        alert.messageText = prompt
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
+        field.stringValue = defaultText ?? ""
+        alert.accessoryView = field
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.initialFirstResponder = field
+        alert.beginSheetModal(for: window) {
+            completionHandler($0 == .alertFirstButtonReturn ? field.stringValue : nil)
         }
     }
 

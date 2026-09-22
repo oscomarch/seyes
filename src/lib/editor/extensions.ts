@@ -5,6 +5,7 @@ import { Placeholder } from '@tiptap/extension-placeholder'
 import { Markdown, type MarkdownStorage } from 'tiptap-markdown'
 import { Toggle, ToggleSummary } from './toggle'
 import { SeyesTaskList } from './taskList'
+import { ListIndent } from './indent'
 
 // tiptap-markdown's own MarkdownStorage type omits `parser`, and @tiptap/core's
 // `Storage` interface is intentionally empty for extensions to augment. This
@@ -29,6 +30,7 @@ export const seyesExtensions = [
   Highlight,
   SeyesTaskList,
   TaskItem.configure({ nested: true }),
+  ListIndent,
   Toggle,
   ToggleSummary,
   Placeholder.configure({ placeholder: 'Write.' }),

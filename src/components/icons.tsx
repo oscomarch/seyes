@@ -55,3 +55,47 @@ export function SettingsIcon({ title }: { title: string }) {
     </svg>
   )
 }
+
+export function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg {...common} width={12} height={12} aria-hidden="true" className={`chevron ${open ? 'open' : ''}`}>
+      <path d="M6 4l4 4-4 4" />
+    </svg>
+  )
+}
+
+export function FolderIcon() {
+  return (
+    <svg {...common} width={14} height={14} aria-hidden="true">
+      <path d="M1.5 3.5h4l1.3 1.6h7.7v8.4h-13v-10z" />
+    </svg>
+  )
+}
+
+export function DotsIcon({ title }: { title: string }) {
+  return (
+    <svg {...common} role="img" aria-label={title}>
+      <title>{title}</title>
+      <circle cx="3.5" cy="8" r="0.6" />
+      <circle cx="8" cy="8" r="0.6" />
+      <circle cx="12.5" cy="8" r="0.6" />
+    </svg>
+  )
+}
+
+export function PencilIcon() {
+  return (
+    <svg {...common} width={14} height={14} aria-hidden="true">
+      <path d="M10.5 2.5l3 3-8 8h-3v-3z" />
+      <path d="M9 4l3 3" />
+    </svg>
+  )
+}
+
+export function DownIcon() {
+  return (
+    <svg {...common} width={12} height={12} aria-hidden="true">
+      <path d="M4 6l4 4 4-4" />
+    </svg>
+  )
+}

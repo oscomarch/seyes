@@ -17,6 +17,7 @@
   --accent: #2f4d86;
   --sidebar: #efece3;
   --mark: #f6e39b;
+  --danger: #a3392c;
 
   /* Séyès ruling. Blue horizontals, a rust margin line, as on real paper. */
   --ruling: rgba(70, 105, 160, 0.13);
@@ -40,6 +41,7 @@
     --accent: #d79a5b;
     --sidebar: #191410;
     --mark: #7c5a1d;
+    --danger: #e0826c;
     --ruling: rgba(214, 156, 96, 0.13);
     --margin-line: rgba(214, 112, 72, 0.30);
   }
@@ -55,6 +57,7 @@
   --accent: #d79a5b;
   --sidebar: #191410;
   --mark: #7c5a1d;
+  --danger: #e0826c;
   --ruling: rgba(214, 156, 96, 0.13);
   --margin-line: rgba(214, 112, 72, 0.30);
 }
@@ -92,29 +95,78 @@ button { font-family: inherit; }
 
 .sidebar {
   width: 100%; height: 100%;
+  display: flex; flex-direction: column;
   background: var(--sidebar);
   border-right: 1px solid var(--rule);
-  overflow-y: auto; padding-bottom: 24px;
+  overflow-y: auto;
 }
 .sidebar-head {
-  display: flex; align-items: center; justify-content: space-between;
-  height: var(--bar); padding: 0 8px 0 24px;
-  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center;
+  height: var(--bar); padding: 0 8px 0 14px; flex: none;
+  position: sticky; top: 0; z-index: 3;
   background: var(--sidebar);
   border-bottom: 1px solid var(--rule);
 }
-.wordmark {
-  font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
-  color: var(--muted);
+
+/* The writing folder's name, and what you can do with the folder. */
+.folder-switcher { position: relative; min-width: 0; }
+.folder-name {
+  display: flex; align-items: center; gap: 5px; max-width: 100%;
+  background: none; border: 1px solid transparent; border-radius: 2px;
+  color: var(--ink); cursor: pointer; font-size: 12.5px; padding: 3px 6px;
 }
-.sidebar-actions { display: flex; gap: 2px; }
+.folder-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.folder-name svg { color: var(--muted); flex: none; }
+.folder-name:hover, .folder-name.on { border-color: var(--rule); background: var(--card); }
+.folder-panel {
+  position: fixed; z-index: 40;
+  width: 264px; padding: 12px;
+  background: var(--card); border: 1px solid var(--rule-strong); border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.folder-label { font-size: 10.5px; color: var(--muted); margin-bottom: 5px; }
+.folder-path { font-size: 12.5px; color: var(--ink); word-break: break-all; margin-bottom: 6px; }
+.folder-where { font-size: 10.5px; color: var(--muted); margin-bottom: 12px; }
+.folder-where::before { content: '●'; margin-right: 5px; font-size: 7px; vertical-align: 2px; }
+.folder-where.cloud { color: var(--accent); }
+.folder-actions { display: flex; flex-direction: column; gap: 5px; }
+.folder-actions button {
+  text-align: left; background: none; cursor: pointer;
+  border: 1px solid var(--rule-strong); border-radius: 2px;
+  color: var(--ink); font-size: 12px; padding: 6px 9px;
+}
+.folder-actions button:hover { border-color: var(--ink); }
+.folder-recent-label { border-top: 1px solid var(--rule); margin-top: 12px; padding-top: 10px; }
+.folder-recent {
+  display: block; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 11.5px; padding: 3px 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.folder-recent:hover { color: var(--ink); }
+
+/* The one obvious action. */
+.sidebar-new { padding: 10px 10px 6px; flex: none; }
+.new-note {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: var(--card); color: var(--ink); cursor: pointer;
+  border: 1px solid var(--rule-strong); border-radius: 2px;
+  font-size: 12.5px; padding: 7px 9px;
+}
+.new-note:hover { border-color: var(--ink); }
+.new-note kbd, .menu kbd {
+  margin-left: auto; font-family: inherit; font-size: 11px; color: var(--muted);
+}
+
+.tree { flex: 1; padding: 2px 0 28px; }
+.tree.drop { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+.tree-empty { font-size: 11.5px; color: var(--muted); padding: 8px 16px; line-height: 1.6; margin: 0; }
 
 .branch { list-style: none; margin: 0; padding: 0; }
 .row {
-  display: flex; align-items: center; gap: 6px;
-  padding: 5px 8px; font-size: 12.5px; cursor: pointer;
-  border-radius: 0; margin: 0;
-  border-bottom: 1px solid transparent;
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 6px 4px 8px; font-size: 12.5px; cursor: pointer;
+  color: var(--ink); border-bottom: 1px solid transparent;
 }
 .row:hover { background: rgba(128, 128, 128, 0.09); }
 .row.on {
@@ -122,16 +174,51 @@ button { font-family: inherit; }
   border-bottom-color: var(--rule);
   box-shadow: inset 2px 0 0 var(--ink);
 }
-.row.folder { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11.5px; }
-.row .caret { width: 10px; flex: none; color: var(--muted); font-size: 9px; }
+.row.target { background: rgba(128, 128, 128, 0.07); }
+.row.drop { background: color-mix(in srgb, var(--accent) 12%, transparent); box-shadow: inset 0 0 0 1px var(--accent); }
+.row-lead { width: 12px; flex: none; display: inline-flex; color: var(--muted); }
+.row-icon { flex: none; display: inline-flex; width: 14px; color: var(--muted); margin-right: 3px; }
+.chevron { transition: transform 140ms ease; }
+.chevron.open { transform: rotate(90deg); }
 .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .row .linked { color: var(--margin-line); font-size: 10px; flex: none; }
-.row .rename, .row .trash {
-  opacity: 0; background: none; border: none; color: var(--muted);
-  cursor: pointer; flex: none; padding: 0 3px; font-size: 11px;
+.row-more {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 18px; padding: 0;
+  background: none; border: none; border-radius: 2px; color: var(--muted); cursor: pointer;
+  opacity: 0;
 }
-.row:hover .rename, .row:hover .trash { opacity: 1; }
-.row .rename:hover, .row .trash:hover { color: var(--ink); }
+.row:hover .row-more, .row-more:focus-visible { opacity: 1; }
+.row-more:hover { color: var(--ink); background: rgba(128, 128, 128, 0.14); }
+
+/* Right-click menu, and the one the ⋯ button opens. */
+.menu {
+  position: fixed; z-index: 50; min-width: 184px; padding: 4px 0;
+  background: var(--card); border: 1px solid var(--rule-strong); border-radius: 3px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+.menu button {
+  display: flex; align-items: center; gap: 18px; width: 100%;
+  background: none; border: none; outline: none; cursor: pointer; text-align: left;
+  color: var(--ink); font-size: 12px; padding: 5px 12px;
+}
+.menu button:hover, .menu button:focus-visible { background: var(--ink); color: var(--paper); }
+.menu button:hover kbd, .menu button:focus-visible kbd { color: inherit; }
+.menu button.danger { color: var(--danger); }
+.menu button.danger:hover, .menu button.danger:focus-visible { background: var(--danger); color: var(--paper); }
+.menu-separator { height: 1px; background: var(--rule); margin: 4px 0; }
+
+/* Short messages instead of alert(). */
+.notices {
+  position: fixed; left: 16px; bottom: 16px; z-index: 60;
+  display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+}
+.notice {
+  max-width: 360px; padding: 7px 11px; border-radius: 2px;
+  background: var(--ink); color: var(--paper); font-size: 12px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+}
+.notice-error { background: var(--danger); }
 
 /* ---------- topbar ---------- */
 
@@ -262,6 +349,10 @@ button { font-family: inherit; }
 .ProseMirror ul, .ProseMirror ol { margin: 0 0 var(--line); padding-left: 22px; }
 .ProseMirror li { margin: 0; line-height: var(--line); }
 .ProseMirror li > p { margin: 0; }
+/* A list inside a list item is part of that item, not a new block, so it
+   takes no space after it. Otherwise every nested list ends with an empty
+   ruled line that is not in the file. */
+.ProseMirror li ul, .ProseMirror li ol { margin-bottom: 0; }
 .ProseMirror ul[data-type="taskList"] { list-style: none; padding-left: 2px; }
 /* Each row is exactly one ruled line tall, and the checkbox is centred on
    that line, so a to-do list sits on the ruling like the prose does. */

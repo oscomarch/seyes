@@ -7,6 +7,8 @@ import { Settings } from '@/components/Settings'
 import { useLiveFolder } from '@/hooks/useLiveFolder'
 import { PanelToggleIcon } from '@/components/icons'
 import { CommandPalette } from '@/components/CommandPalette'
+import { Notices } from '@/components/Notices'
+import { markFresh } from '@/lib/client/fresh'
 import type { TreeNode } from '@/lib/fs/tree'
 
 export default function Home() {
@@ -83,7 +85,13 @@ export default function Home() {
       {sidebarOpen && (
         <>
           <div className="sidebar-slot" style={{ width }}>
-            <Sidebar tree={tree} current={current} onOpen={setCurrent} onRefresh={() => void refresh()} />
+            <Sidebar
+              tree={tree}
+              current={current}
+              onOpen={setCurrent}
+              onClose={() => setCurrent(null)}
+              onRefresh={() => void refresh()}
+            />
           </div>
           <div className="resizer" onMouseDown={startResize} />
         </>
@@ -118,13 +126,17 @@ export default function Home() {
                 body: JSON.stringify({ folder: '', name: 'Untitled', kind: 'note' }),
               })
               const { path } = await response.json()
-              if (path) setCurrent(path)
+              if (path) {
+                markFresh(path)
+                setCurrent(path)
+              }
               void refresh()
             }}
           />
         )}
       </div>
       <CommandPalette onOpen={setCurrent} />
+      <Notices />
     </div>
   )
 }
