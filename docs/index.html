@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>Seyes</title>
 <meta name="description" content="A small writing app for the Mac. Your writing stays in plain files on your own computer.">
 <meta property="og:title" content="Seyes">
@@ -18,14 +19,6 @@
     --danger: #a3392c;
     --font: "Courier New", Courier, monospace;
     --system: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --paper: #14100c; --card: #1c1712; --ink: #efe3d2; --muted: #9a8a74;
-      --rule: #2f2720; --rule-strong: #46392d; --accent: #d79a5b;
-      --ruling: rgba(214, 156, 96, 0.08); --margin: rgba(214, 112, 72, 0.32);
-      --danger: #e0826c;
-    }
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
@@ -146,10 +139,7 @@
 </div>
 
 <div class="shot">
-  <picture>
-    <source srcset="seyes-dark.png" media="(prefers-color-scheme: dark)">
-    <img src="seyes-light.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper." width="1300" height="880">
-  </picture>
+  <img src="seyes-light.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper." width="1360" height="940">
 </div>
 
 <section id="install">
