@@ -38,6 +38,9 @@
     /* Séyès ruling, drawn in from the left on arrival. */
     content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
     background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--line) - 1px), var(--ruling) calc(var(--line) - 1px), var(--ruling) var(--line));
+    /* Set by alignPaper() so each rule runs under a line of text, as on real
+       paper, wherever the layout puts that text. */
+    background-position: 0 var(--rule-y, 0px);
     -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
     mask-image: linear-gradient(to bottom, #000 60%, transparent);
     clip-path: inset(0 100% 0 0);
@@ -45,7 +48,8 @@
   }
   .paper::after {
     /* The rust margin line, drawn down. */
-    content: ''; position: absolute; top: 0; bottom: 30%; left: max(12px, calc(50% - 390px)); width: 1px;
+    /* Just left of where the writing starts, like the margin of a school page. */
+    content: ''; position: absolute; top: 0; bottom: 30%; left: var(--margin-x, max(12px, calc(50% - 390px))); width: 1px;
     background: var(--margin); z-index: -1; transform-origin: top; transform: scaleY(0);
     animation: margin 1.2s var(--ease) 0.5s forwards;
   }
@@ -63,8 +67,10 @@
   .hero { padding: calc(var(--line) * 2) 0 calc(var(--line) * 2); }
   .wordmark {
     font-size: clamp(56px, 11vw, 96px); font-weight: 700; letter-spacing: -0.02em;
-    line-height: 1; margin: 0; height: 1em; display: flex; align-items: center;
+    line-height: calc(var(--line) * 3); margin: 0; white-space: nowrap;
   }
+  .baseline-probe { display: inline-block; width: 0; height: 0; vertical-align: baseline; }
+  .snap { position: relative; }
   .wordmark .bar { display: inline-block; width: 3px; height: 0.78em; background: var(--accent); margin-left: 0.06em; transform: translateY(0.04em); animation: blink 1s steps(1) infinite; transition: opacity .6s; }
   .wordmark.done .bar { animation: none; opacity: 0; transition-delay: 1.6s; }
   @keyframes blink { 50% { opacity: 0; } }
@@ -88,7 +94,6 @@
   /* ---------- hero: the first screen, and only the first screen ---------- */
 
   .paper.top { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; }
-  .paper.top::after { left: max(12px, calc(50% - 530px)); }
   .paper.top > .col { flex: 1; display: flex; flex-direction: column; width: 100%; }
   .col.wide { max-width: 1080px; }
   .hero-grid {
@@ -105,7 +110,7 @@
   .laptop .base::before { content: ''; position: absolute; left: 50%; top: 0; width: 15%; height: 5px; margin-left: -7.5%; border-radius: 0 0 7px 7px; background: linear-gradient(#b9bbbf, #d3d5d8); }
 
   .scroll-cue {
-    position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+    position: absolute; left: 0; right: 0; bottom: 22px; width: max-content; margin: 0 auto;
     display: flex; flex-direction: column; align-items: center; gap: 6px;
     color: var(--muted); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; text-decoration: none;
   }
@@ -115,7 +120,7 @@
 
   @media (max-width: 860px) {
     .hero-grid { grid-template-columns: 1fr; gap: 40px; padding-bottom: calc(var(--line) * 3); }
-    .laptop { max-width: 520px; margin: 0 auto; }
+    .laptop { width: 86%; max-width: 480px; margin: 0 auto; }  /* room for the base, which is wider than the screen */
   }
   @media (prefers-reduced-motion: reduce) { .scroll-cue svg { animation: none; } }
 
@@ -295,16 +300,16 @@
 
 <div class="paper top">
   <div class="col wide">
-    <header>
+    <header class="snap" data-probe="nav">
       <a class="mark" href="#"><img src="icon.png" alt="">seyes</a>
       <nav><a href="#install">Install</a><a href="https://github.com/oscomarch/seyes">GitHub</a></nav>
     </header>
 
     <section class="hero hero-grid">
       <div>
-        <h1 class="wordmark" aria-label="Seyes"><span id="typed" aria-hidden="true"></span><span class="bar" aria-hidden="true"></span></h1>
-        <p class="tagline fade">A place to write, on your own computer.</p>
-        <p class="sub fade">Every note is a plain text file in a folder on your Mac. No account, no cloud, nothing to learn.</p>
+        <h1 class="wordmark snap" aria-label="Seyes"><span id="typed" aria-hidden="true"></span><span class="bar" aria-hidden="true"></span></h1>
+        <p class="tagline fade" data-rule-anchor>A place to write, on your own computer.</p>
+        <p class="sub snap fade">Every note is a plain text file in a folder on your Mac. No account, no cloud, nothing to learn.</p>
         <div class="cta fade">
           <a class="download js-download" data-where="hero" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
@@ -411,7 +416,7 @@
 
 <section class="end paper">
   <div class="col reveal">
-    <h2>Start writing.</h2>
+    <h2 data-rule-anchor>Start writing.</h2>
     <a class="download js-download" data-where="end" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
       Download for Mac
@@ -453,6 +458,41 @@
   const still = matchMedia('(prefers-reduced-motion: reduce)').matches
   const $ = (id) => document.getElementById(id)
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+  /* ---------- the paper: rules under the words, margin before them ---------- */
+  // Where a line of text sits within `paper`: a zero-size box on its baseline,
+  // measured by layout offsets, so fade-in animations don't throw it off.
+  function baseline(el, paper) {
+    const probe = document.createElement('span'); probe.className = 'baseline-probe'
+    el.appendChild(probe)
+    let y = 0
+    for (let n = probe; n && n !== paper; n = n.offsetParent) y += n.offsetTop
+    probe.remove()
+    return y
+  }
+  const LINE = 32, SINK = 3  // a rule runs 3px under the baseline, like ink on a ruled line
+  function alignPaper() {
+    for (const paper of document.querySelectorAll('.paper')) {
+      const anchor = paper.querySelector('[data-rule-anchor]')
+      if (!anchor) continue
+      const rule = baseline(anchor, paper) + SINK               // where one rule must fall
+      paper.style.setProperty('--rule-y', `${((rule - (LINE - 1)) % LINE + LINE) % LINE}px`)
+      // Other text in the block moves (at most half a line) to sit on the rules too.
+      for (const el of paper.querySelectorAll('.snap')) {
+        el.style.top = '0px'
+        // A flex container has no baseline of its own; measure its text instead.
+        const text = el.dataset.probe ? el.querySelector(el.dataset.probe) : el
+        let d = ((rule - (baseline(text, paper) + SINK)) % LINE + LINE) % LINE
+        if (d > LINE / 2) d -= LINE
+        el.style.top = `${d}px`
+      }
+      const mark = paper.querySelector('.wordmark')
+      if (mark) paper.style.setProperty('--margin-x', `${Math.max(8, mark.getBoundingClientRect().left - paper.getBoundingClientRect().left - 18)}px`)
+    }
+  }
+  alignPaper()
+  document.fonts?.ready.then(alignPaper)
+  addEventListener('resize', alignPaper)
 
   /* ---------- hero: type the name, then let the rest arrive ---------- */
   const fades = [...document.querySelectorAll('.hero .fade, .scroll-cue')]
