@@ -4,6 +4,7 @@ Turn a poem into a vertical video of it being typed into Seyes.
 
     python3 promo/make.py promo/poems/hope.md        # one poem
     python3 promo/make.py promo/poems/*.md           # all of them
+    python3 promo/make.py --landscape <poem>         # a 16:10 Mac screen, for the website
     python3 promo/make.py --keys real <poem>         # Oscar's recorded keyboard, in stereo
     python3 promo/make.py --keys natural <poem>      # the synthesised stereo keyboard
 
@@ -339,9 +340,9 @@ def write_wav(path, samples):
 
 # ---------------------------------------------------------------- picture
 
-def sizes(title, body, author):
+def sizes(title, body, author, landscape=False):
     """Fit every verse on one line: a poem's line breaks are part of it."""
-    column = 430  # text width inside the window, in CSS pixels
+    column = 546 if landscape else 430  # text width inside the window, in CSS pixels
     longest = max(len(line) for line in body.split("\n") + [author])
     font = min(19.0, round(column / (longest * 0.6) * 0.98, 1))
     title_font = min(22.0, round(column / (len(title) * 0.6) * 0.98, 1))
@@ -388,21 +389,21 @@ def finale_times(end, author):
     return {k: round(v, 4) for k, v in f.items()}
 
 
-def make(path, keys=DEFAULT_KEYS):
+def make(path, keys=DEFAULT_KEYS, landscape=False):
     meta, body = read_poem(path)
     title, author = meta.get("title", path.stem), meta.get("author", "")
     seed = int(hashlib.sha256(path.read_bytes()).hexdigest(), 16) % 2**32
     ops, end = plan(title, body, author, seed)
     finale = finale_times(end, author)
     seconds = finale["reveal"] + 3.0  # hold on the finished poem
-    font, line_height, title_font = sizes(title, body, author)
+    font, line_height, title_font = sizes(title, body, author, landscape)
 
     OUT.mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(dir=BUILD if BUILD.exists() else None) as tmp:
         tmp = Path(tmp)
         timeline = {
             "mood": meta.get("mood", "dusk"), "fontSize": font, "lineHeight": line_height,
-            "ops": ops, "finale": finale,
+            "ops": ops, "finale": finale, "layout": "landscape" if landscape else "portrait",
             "clock": meta.get("clock", "Tue 22 Sep  21:14"), "day": meta.get("day", "22"),
         }
         page = (HERE / "scene.html").read_text(encoding="utf-8")
@@ -416,13 +417,14 @@ def make(path, keys=DEFAULT_KEYS):
         write_wav(tmp / "keys.wav", SOUNDS[keys](ops, seconds, seed, finale))
 
         print(f"{path.stem}: {seconds:.1f}s, {len(ops)} keystrokes, text {font}px", flush=True)
-        video = OUT / f"{path.stem}.mp4"
+        video = OUT / f"{path.stem}{'-landscape' if landscape else ''}.mp4"
+        css = (960, 600) if landscape else (540, 960)
         # Frames stream from the renderer straight into the encoder, no files between.
-        capture = subprocess.Popen([str(capture_tool()), str(tmp / "scene.html"), str(FPS), str(seconds)],
+        capture = subprocess.Popen([str(capture_tool()), str(tmp / "scene.html"), str(FPS), str(seconds), str(css[0]), str(css[1])],
                                    stdout=subprocess.PIPE)
         subprocess.run([
             "ffmpeg", "-y", "-loglevel", "error",
-            "-f", "rawvideo", "-pix_fmt", "rgba", "-s", "1080x1920", "-r", str(FPS), "-i", "-",
+            "-f", "rawvideo", "-pix_fmt", "rgba", "-s", f"{css[0] * 2}x{css[1] * 2}", "-r", str(FPS), "-i", "-",
             "-i", str(tmp / "keys.wav"),
             "-c:v", "libx264", "-preset", "slow", "-crf", "16", "-pix_fmt", "yuv420p",
             "-c:a", "aac", "-b:a", "192k", "-shortest", "-movflags", "+faststart",
@@ -437,9 +439,11 @@ if __name__ == "__main__":
     BUILD.mkdir(exist_ok=True)
     args = sys.argv[1:]
     keys = DEFAULT_KEYS
+    landscape = "--landscape" in args
+    args = [a for a in args if a != "--landscape"]
     if "--keys" in args:
         i = args.index("--keys")
         keys = args[i + 1]
         del args[i:i + 2]
     for arg in args or sorted(str(p) for p in (HERE / "poems").glob("*.md")):
-        make(Path(arg), keys)
+        make(Path(arg), keys, landscape)

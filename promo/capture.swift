@@ -3,7 +3,8 @@ import WebKit
 
 /*
  * Renders a scene as raw 1080 x 1920 RGBA frames on stdout, for ffmpeg to
- * read directly: capture <scene.html> <fps> <seconds>
+ * read directly: capture <scene.html> <fps> <seconds> [<css width> <css height>]
+ * Frames are twice the CSS size, 540 x 960 by default, so 1080 x 1920.
  *
  * The page exposes renderAt(t), and this asks for every frame in turn, so
  * the result never depends on how fast the machine is. The window is on
@@ -15,7 +16,8 @@ let scene = URL(fileURLWithPath: args[1])
 let fps = Double(args[2])!
 let seconds = Double(args[3])!
 let out = FileHandle.standardOutput
-let (pw, ph) = (1080, 1920)
+let (cw, ch) = args.count > 5 ? (Int(args[4])!, Int(args[5])!) : (540, 960)
+let (pw, ph) = (cw * 2, ch * 2)
 var pixels = [UInt8](repeating: 0, count: pw * ph * 4)
 let context = CGContext(data: &pixels, width: pw, height: ph, bitsPerComponent: 8, bytesPerRow: pw * 4,
                         space: CGColorSpace(name: CGColorSpace.sRGB)!,
@@ -25,7 +27,7 @@ let frames = Int((seconds * fps).rounded(.up))
 
 let app = NSApplication.shared
 app.setActivationPolicy(.prohibited)
-let size = NSSize(width: 540, height: 960)
+let size = NSSize(width: cw, height: ch)
 let window = NSWindow(contentRect: NSRect(origin: .zero, size: size), styleMask: [.borderless], backing: .buffered, defer: false)
 window.alphaValue = 0
 window.ignoresMouseEvents = true

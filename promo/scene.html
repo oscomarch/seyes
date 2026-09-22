@@ -95,6 +95,10 @@
   .bubble span.down { background: rgba(255,255,255,0.34); }
 
   .pointer { position: absolute; z-index: 10; left: 0; top: 0; pointer-events: none; }
+
+  /* Landscape: a whole Mac screen, 16:10, for a laptop mock-up rather than a phone. */
+  html.landscape, html.landscape body { width: 960px; height: 600px; }
+  .landscape .win { left: 170px; top: 46px; width: 620px; height: 474px; }
 </style>
 </head>
 <body>
@@ -166,9 +170,10 @@ const MOODS = {
   rose:   'radial-gradient(110% 70% at 15% 5%, #fde7ec 0%, transparent 55%), radial-gradient(100% 70% at 90% 100%, #d98ca3 0%, transparent 60%), linear-gradient(170deg, #f7d4dc 0%, #eeb3c3 50%, #c98aa6 100%)',
   rain:   'radial-gradient(110% 70% at 50% 0%, #a9b5c2 0%, transparent 60%), radial-gradient(100% 70% at 90% 100%, #2c3a4a 0%, transparent 60%), linear-gradient(180deg, #7c8a99 0%, #4f5f70 55%, #2a3644 100%)',
 }
-const LIGHT = { dawn: true, summer: true, rose: true }  // light wallpapers get a dark menu bar, like macOS
+const LIGHT = { dawn: true, summer: true, rose: true, sea: true }  // pale at the top, where the menu bar is  // light wallpapers get a dark menu bar, like macOS
 
 const T = window.TIMELINE, F = T.finale
+if (T.layout === 'landscape') document.documentElement.classList.add('landscape')
 const $ = (id) => document.getElementById(id)
 $('bg').style.background = MOODS[T.mood] || MOODS.dusk
 if (LIGHT[T.mood]) document.body.classList.add('light')
