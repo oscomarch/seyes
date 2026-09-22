@@ -13,215 +13,498 @@
 <link rel="icon" href="favicon.png">
 <style>
   :root {
-    --paper: #f7f5ef; --card: #fdfcf8; --ink: #17110b; --muted: #7d766b;
+    --paper: #f7f5ef; --card: #fdfcf8; --sidebar: #efece3; --ink: #17110b; --muted: #8a8378;
     --rule: #ddd6c8; --rule-strong: #c3baa8; --accent: #2f4d86;
-    --ruling: rgba(70, 105, 160, 0.10); --margin: rgba(170, 70, 60, 0.28);
-    --danger: #a3392c;
+    --ruling: rgba(70, 105, 160, 0.13); --margin: rgba(170, 70, 60, 0.30); --danger: #a3392c;
     --font: "Courier New", Courier, monospace;
     --system: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+    --line: 32px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     margin: 0; background: var(--paper); color: var(--ink);
-    font-family: var(--font); font-size: 15px; line-height: 1.75;
-    -webkit-font-smoothing: antialiased;
+    font-family: var(--font); font-size: 16px; line-height: 1.7;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
   }
   a { color: inherit; }
-  .col { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+  .col { max-width: 700px; margin: 0 auto; padding: 0 24px; }
 
-  /* Séyès ruling behind the top of the page, with its rust margin line. */
-  .sheet {
-    -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent);
-    mask-image: linear-gradient(to bottom, #000 70%, transparent);
-    background-image:
-      linear-gradient(to right, transparent 0, transparent calc(50% - 392px), var(--margin) calc(50% - 392px), var(--margin) calc(50% - 391px), transparent calc(50% - 391px)),
-      repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--ruling) 31px, var(--ruling) 32px);
+  /* ---------- the paper ---------- */
+
+  .paper { position: relative; isolation: isolate; }
+  .paper::before {
+    /* Séyès ruling, drawn in from the left on arrival. */
+    content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--line) - 1px), var(--ruling) calc(var(--line) - 1px), var(--ruling) var(--line));
+    -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
+    mask-image: linear-gradient(to bottom, #000 60%, transparent);
+    clip-path: inset(0 100% 0 0);
+    animation: rule 1.4s var(--ease) 0.1s forwards;
   }
-  @media (max-width: 840px) { .sheet { background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--ruling) 31px, var(--ruling) 32px); } }
+  .paper::after {
+    /* The rust margin line, drawn down. */
+    content: ''; position: absolute; top: 0; bottom: 30%; left: max(12px, calc(50% - 390px)); width: 1px;
+    background: var(--margin); z-index: -1; transform-origin: top; transform: scaleY(0);
+    animation: margin 1.2s var(--ease) 0.5s forwards;
+  }
+  @keyframes rule { to { clip-path: inset(0 0 0 0); } }
+  @keyframes margin { to { transform: scaleY(1); } }
 
-  header { display: flex; align-items: center; justify-content: space-between; padding: 22px 0; }
-  .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; }
-  .mark img { width: 30px; height: 30px; }
-  header nav a { font-size: 13px; color: var(--muted); text-decoration: none; margin-left: 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; height: calc(var(--line) * 3); }
+  .mark { display: flex; align-items: center; gap: 10px; text-decoration: none; font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--muted); }
+  .mark img { width: 26px; height: 26px; }
+  header nav a { font-size: 13px; color: var(--muted); text-decoration: none; margin-left: 22px; transition: color .2s; }
   header nav a:hover { color: var(--ink); }
 
-  .hero { padding: 72px 0 28px; }
-  h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 20px; font-weight: 700; }
-  .lede { font-size: 17px; color: var(--muted); margin: 0 0 36px; max-width: 34em; }
+  /* ---------- hero ---------- */
+
+  .hero { padding: calc(var(--line) * 2) 0 calc(var(--line) * 2); }
+  .wordmark {
+    font-size: clamp(56px, 11vw, 96px); font-weight: 700; letter-spacing: -0.02em;
+    line-height: 1; margin: 0; height: 1em; display: flex; align-items: center;
+  }
+  .wordmark .bar { display: inline-block; width: 3px; height: 0.78em; background: var(--accent); margin-left: 0.06em; transform: translateY(0.04em); animation: blink 1s steps(1) infinite; transition: opacity .6s; }
+  .wordmark.done .bar { animation: none; opacity: 0; transition-delay: 1.6s; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .tagline { font-size: clamp(17px, 2.5vw, 24px); line-height: var(--line); margin: var(--line) 0 0; }
+  .sub { color: var(--muted); margin: 0; max-width: 31em; font-size: 15px; line-height: var(--line); }
+  .cta { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: var(--line); }
   .download {
     display: inline-flex; align-items: center; gap: 12px;
     background: var(--ink); color: var(--paper); text-decoration: none;
-    font-size: 14px; letter-spacing: 0.12em; text-transform: uppercase;
-    padding: 15px 24px; border-radius: 2px;
+    font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase;
+    padding: 16px 26px; border-radius: 2px;
+    transition: transform .25s var(--ease), box-shadow .25s var(--ease);
   }
-  .download:hover { opacity: 0.88; }
-  .download svg { width: 17px; height: 17px; }
-  .meta { font-size: 12.5px; color: var(--muted); margin: 14px 0 0; }
-  .meta a { color: var(--ink); }
+  .download:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(23, 17, 11, 0.18); }
+  .download svg { width: 16px; height: 16px; }
+  .cta small { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
 
-  .shot { max-width: 1100px; margin: -8px auto 0; padding: 0 12px; }
-  .shot img { width: 100%; height: auto; display: block; }
+  .fade { opacity: 0; transform: translateY(10px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
+  .fade.in { opacity: 1; transform: none; }
 
-  section { padding: 64px 0 8px; }
-  h2 { font-size: 23px; margin: 0 0 12px; }
-  section > .col > p { color: var(--muted); margin: 0 0 22px; }
-  section > .col > p strong { color: var(--ink); font-weight: 700; }
+  /* ---------- the scene ---------- */
 
-  ol.steps { list-style: none; counter-reset: step; margin: 32px 0 0; padding: 0; }
-  ol.steps > li { counter-increment: step; position: relative; padding: 0 0 36px 52px; }
-  ol.steps > li::before {
-    content: counter(step); position: absolute; left: 0; top: 0;
-    width: 32px; height: 32px; border: 1px solid var(--rule-strong); border-radius: 2px;
-    display: flex; align-items: center; justify-content: center; font-size: 14px; background: var(--card);
+  .stage { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  .stage-frame { position: relative; width: 100%; aspect-ratio: 1000 / 640; }
+  .stage-frame.narrow { aspect-ratio: 560 / 600; }
+  .win {
+    position: absolute; top: 0; left: 0; width: 1000px; height: 640px; transform-origin: top left;
+    background: var(--paper); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 30px 70px rgba(40, 30, 20, 0.16), 0 6px 18px rgba(40, 30, 20, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.09);
+    display: flex; font-size: 12.5px;
   }
-  ol.steps h3 { font-size: 16px; margin: 3px 0 6px; }
-  ol.steps p { margin: 0 0 14px; color: var(--muted); }
-  ol.steps p b { color: var(--ink); }
-  .warn { color: var(--danger) !important; }
-
-  /* Small drawings of what macOS shows, so the steps can be followed at a glance. */
-  .mock { font-family: var(--system); font-size: 13px; line-height: 1.4; color: #1d1d1f; }
-  .alert {
-    width: 262px; background: #ececec; border-radius: 14px; padding: 18px 16px 14px; text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.18), 0 0 0 0.5px rgba(0,0,0,0.2);
+  /* On a phone the window drops its sidebar, so the writing can be drawn large enough to read. */
+  .win.narrow { width: 560px; height: 600px; }
+  .win.narrow .w-side { display: none; }
+  .win.narrow .w-top { padding-left: 80px; }
+  .win.narrow .file { width: 340px; right: 18px; bottom: 18px; }
+  .win.narrow .file-note { right: 18px; bottom: 262px; }
+  .lights { position: absolute; top: 13px; left: 14px; display: flex; gap: 8px; z-index: 3; }
+  .lights i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; box-shadow: inset 0 0 0 0.5px rgba(0,0,0,.15); }
+  .lights i:nth-child(2) { background: #febc2e; } .lights i:nth-child(3) { background: #28c840; }
+  .w-side { width: 232px; flex: none; background: var(--sidebar); border-right: 1px solid var(--rule); }
+  .w-head { height: 38px; border-bottom: 1px solid var(--rule); display: flex; align-items: center; padding-left: 82px; }
+  .w-head span::after { content: ' \2335'; color: var(--muted); font-size: 11px; }
+  .w-new { margin: 10px; border: 1px solid var(--rule-strong); background: var(--card); padding: 6px 9px; display: flex; gap: 8px; align-items: center; transition: transform .12s, background .12s; }
+  .w-new.press { transform: scale(0.97); background: #f3efe6; }
+  .w-new kbd { margin-left: auto; font-family: inherit; font-size: 11px; color: var(--muted); }
+  .w-tree { padding-top: 2px; }
+  .w-row { padding: 4px 8px 4px 34px; white-space: nowrap; overflow: hidden; }
+  .w-row.folder { padding-left: 12px; display: flex; gap: 7px; align-items: center; }
+  .w-row.folder svg { color: var(--muted); flex: none; }
+  .w-row.child { padding-left: 52px; }
+  .w-row.on { background: var(--card); box-shadow: inset 2px 0 0 var(--ink); }
+  .w-row.enter { animation: rowIn .45s var(--ease); }
+  @keyframes rowIn { from { opacity: 0; transform: translateX(-8px); } }
+  .w-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .w-top { height: 38px; border-bottom: 1px solid var(--rule); flex: none; }
+  .w-page { flex: 1; padding: 42px 0 0; overflow: hidden; }
+  .w-title { max-width: 520px; margin: 0 auto 6px; padding-left: 24px; font-size: 24px; font-weight: 700; min-height: 34px; }
+  .w-title .t { background: rgba(47, 77, 134, 0.18); }
+  .w-sheet {
+    max-width: 520px; margin: 0 auto; padding-left: 24px; min-height: 380px; font-size: 14px; line-height: 28px;
+    background-image:
+      linear-gradient(to right, transparent 17px, var(--margin) 17px, var(--margin) 18px, transparent 18px),
+      repeating-linear-gradient(to bottom, transparent 0, transparent 27px, var(--ruling) 27px, var(--ruling) 28px);
   }
-  .alert img { width: 52px; height: 52px; margin-bottom: 8px; }
-  .alert .t { font-weight: 700; font-size: 13.5px; margin-bottom: 6px; }
-  .alert .b { font-size: 11.5px; color: #3a3a3c; margin-bottom: 14px; }
-  .alert .btn { display: block; border-radius: 7px; padding: 5px; margin-top: 7px; background: #fff; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.15); }
-  .alert .btn.go { background: #0a84ff; color: #fff; box-shadow: 0 0 0 3px rgba(10,132,255,0.35); }
-  .alert .btn.no { color: #6e6e73; text-decoration: line-through; text-decoration-color: rgba(163,57,44,0.8); }
-  .pane {
-    max-width: 440px; background: #f5f5f7; border-radius: 12px; padding: 14px 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.14), 0 0 0 0.5px rgba(0,0,0,0.2);
+  .w-sheet p { margin: 0 0 28px; min-height: 28px; }
+  .w-sheet ul { margin: 0 0 28px; padding-left: 20px; }
+  .w-sheet li ul { margin: 0; }
+  .w-sheet li { list-style: disc; min-height: 28px; }
+  .w-sheet li li { list-style: circle; }
+  .caret { display: inline-block; width: 1.5px; height: 1.15em; background: var(--accent); vertical-align: -0.2em; margin-left: 1px; }
+  .caret.idle { animation: blink 1s steps(1) infinite; }
+  .pointer { position: absolute; top: 0; left: 0; width: 18px; height: 22px; z-index: 5; transition: transform .9s var(--ease), opacity .3s; pointer-events: none; }
+  .keycap {
+    position: absolute; left: 50%; bottom: 26px; z-index: 6; transform: translate(-50%, 12px); opacity: 0;
+    background: rgba(23, 17, 11, 0.86); color: var(--paper); font-size: 15px; letter-spacing: 0.06em;
+    padding: 8px 16px; border-radius: 8px; transition: opacity .2s, transform .3s var(--ease);
   }
-  .pane .crumb { font-weight: 700; margin-bottom: 10px; }
-  .pane .row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 8px; padding: 10px 12px; }
-  .pane .row span { flex: 1; font-size: 12px; }
-  .pane .row em { font-style: normal; background: #fff; border-radius: 6px; padding: 3px 10px; font-size: 12px; box-shadow: 0 0 0 0.5px rgba(0,0,0,0.25), 0 0 0 3px rgba(10,132,255,0.45); }
-  .caption { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  .keycap.show { opacity: 1; transform: translate(-50%, 0); }
+  .file {
+    position: absolute; right: 26px; bottom: 26px; width: 370px; z-index: 4;
+    background: #fff; border-radius: 10px; overflow: hidden; font-family: var(--system);
+    box-shadow: 0 24px 60px rgba(40, 30, 20, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.2);
+    opacity: 0; transform: translateY(24px) scale(0.98); transition: opacity .6s var(--ease), transform .8s var(--ease);
+  }
+  .file.show { opacity: 1; transform: none; }
+  .file-bar { height: 30px; background: #ececec; border-bottom: 1px solid #dcdcdc; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6e6e73; position: relative; }
+  .file-bar i { position: absolute; top: 10px; width: 10px; height: 10px; border-radius: 50%; background: #d4d4d4; }
+  .file-bar i:nth-child(1) { left: 10px; } .file-bar i:nth-child(2) { left: 26px; } .file-bar i:nth-child(3) { left: 42px; }
+  .file-bar b { font-weight: 600; color: #1d1d1f; margin-right: 6px; }
+  .file pre { margin: 0; padding: 14px 16px 16px; font-family: Menlo, monospace; font-size: 11.5px; line-height: 1.6; color: #1d1d1f; white-space: pre-wrap; }
+  .file-note { position: absolute; right: 26px; bottom: 268px; z-index: 4; font-size: 12px; color: var(--muted); opacity: 0; transition: opacity .6s .3s; }
+  .file.show + .file-note { opacity: 1; }
+  .stage-controls { display: flex; justify-content: center; gap: 18px; margin-top: 18px; font-size: 12.5px; color: var(--muted); }
+  .stage-controls button { background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 4px; }
+  .stage-controls button:hover { color: var(--ink); }
 
-  .aside { border-left: 2px solid var(--rule-strong); padding: 2px 0 2px 16px; margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+  /* ---------- promises ---------- */
 
-  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; margin-top: 28px; }
-  .fact { border: 1px solid var(--rule); background: var(--card); border-radius: 2px; padding: 16px 16px 14px; }
-  .fact h3 { font-size: 14px; margin: 0 0 6px; }
-  .fact p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.65; }
+  .promises { padding: calc(var(--line) * 4) 0 calc(var(--line) * 2); }
+  .promise { display: grid; grid-template-columns: 56px 1fr; gap: 0 12px; padding: 28px 0; border-top: 1px solid var(--rule); }
+  .promise:last-child { border-bottom: 1px solid var(--rule); }
+  .promise .n { font-size: 13px; color: var(--muted); padding-top: 6px; }
+  .promise h3 { font-size: clamp(20px, 3vw, 26px); margin: 0 0 6px; line-height: 1.3; }
+  .promise p { margin: 0; color: var(--muted); font-size: 15px; }
 
-  details { margin-top: 18px; font-size: 13px; color: var(--muted); }
-  summary { cursor: pointer; color: var(--ink); }
-  code { font-family: var(--font); font-size: 12px; word-break: break-all; background: var(--card); border: 1px solid var(--rule); padding: 2px 5px; border-radius: 2px; }
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity 1s var(--ease), transform 1s var(--ease); }
+  .reveal.in { opacity: 1; transform: none; }
 
-  footer { margin-top: 64px; border-top: 1px solid var(--rule); padding: 28px 0 48px; font-size: 13px; color: var(--muted); }
-  footer a { color: var(--ink); }
+  /* ---------- install ---------- */
+
+  .install { padding: calc(var(--line) * 2) 0; }
+  h2 { font-size: clamp(22px, 3vw, 28px); margin: 0 0 10px; }
+  .install .lead { color: var(--muted); margin: 0; }
+  .steps { list-style: none; counter-reset: s; padding: 0; margin: 36px 0 12px; }
+  .steps > li { counter-increment: s; display: grid; grid-template-columns: 44px 1fr; gap: 0 14px; padding-bottom: 34px; }
+  .steps > li::before { content: counter(s); width: 30px; height: 30px; border: 1px solid var(--rule-strong); background: var(--card); display: grid; place-items: center; font-size: 13px; border-radius: 2px; }
+  .steps h3 { font-size: 16px; margin: 2px 0 4px; }
+  .steps p { margin: 0; color: var(--muted); font-size: 15px; }
+  .steps p b { color: var(--ink); }
+  .steps .warn { color: var(--danger); margin-top: 6px; }
+  .mock { font-family: var(--system); line-height: 1.4; color: #1d1d1f; margin-top: 16px; }
+  .alert { width: 250px; background: #ececec; border-radius: 14px; padding: 16px 14px 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,.14), 0 0 0 .5px rgba(0,0,0,.2); }
+  .alert img { width: 46px; height: 46px; margin-bottom: 6px; }
+  .alert .t { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+  .alert .b { font-size: 11px; color: #48484a; margin-bottom: 12px; }
+  .alert .btn { display: block; border-radius: 7px; padding: 5px; margin-top: 6px; background: #fff; font-size: 12.5px; box-shadow: 0 0 0 .5px rgba(0,0,0,.15); }
+  .alert .go { background: #0a84ff; color: #fff; box-shadow: 0 0 0 3px rgba(10,132,255,.3); }
+  .alert .no { color: #8e8e93; text-decoration: line-through; text-decoration-color: rgba(163,57,44,.7); }
+  .pane { max-width: 420px; background: #f5f5f7; border-radius: 12px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.12), 0 0 0 .5px rgba(0,0,0,.2); font-size: 12.5px; }
+  .pane .row { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 8px; padding: 9px 12px; }
+  .pane .row span { flex: 1; }
+  .pane em { font-style: normal; border-radius: 6px; padding: 3px 10px; box-shadow: 0 0 0 .5px rgba(0,0,0,.25), 0 0 0 3px rgba(10,132,255,.4); background: #fff; white-space: nowrap; }
+  details { font-size: 14px; color: var(--muted); border-top: 1px solid var(--rule); padding: 12px 0; }
+  details:last-of-type { border-bottom: 1px solid var(--rule); }
+  summary { cursor: pointer; color: var(--ink); list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: '+'; display: inline-block; width: 18px; color: var(--muted); }
+  details[open] summary::before { content: '\2212'; }
+  details p { margin: 8px 0 0 18px; }
+  code { font-family: var(--font); font-size: 12px; word-break: break-all; background: var(--card); border: 1px solid var(--rule); padding: 1px 5px; }
+
+  /* ---------- end ---------- */
+
+  .end { padding: calc(var(--line) * 4) 0 calc(var(--line) * 3); text-align: center; }
+  .end::after { display: none; }
+  .end::before { -webkit-mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent); mask-image: linear-gradient(to bottom, transparent, #000 30%, #000 70%, transparent); }
+  .end h2 { font-size: clamp(26px, 4vw, 38px); margin-bottom: 30px; }
+  footer { border-top: 1px solid var(--rule); padding: 26px 0 44px; font-size: 13px; color: var(--muted); }
+  footer .col { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 600px) {
+    .file { width: 330px; }
+    .promise { grid-template-columns: 40px 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .paper::before { animation: none; clip-path: none; }
+    .paper::after { animation: none; transform: none; }
+    .fade, .reveal { opacity: 1; transform: none; transition: none; }
+    .caret.idle, .wordmark .bar { animation: none; }
+  }
 </style>
 </head>
 <body>
 
-<div class="sheet">
+<div class="paper">
   <div class="col">
     <header>
       <a class="mark" href="#"><img src="icon.png" alt="">seyes</a>
       <nav><a href="#install">Install</a><a href="https://github.com/oscomarch/seyes">GitHub</a></nav>
     </header>
 
-    <div class="hero">
-      <h1>A place to write, on your own computer.</h1>
-      <p class="lede">Seyes keeps everything you write as plain text files in a folder on your Mac. There's no account and no cloud, and nothing to sign up for.</p>
-      <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
-        Download for Mac
-      </a>
-      <p class="meta">Free. Version 0.5, 72 MB. macOS 13 or later, Apple Silicon and Intel.<br>macOS asks you to confirm it the first time. <a href="#install">Here's how, it takes a minute.</a></p>
-    </div>
+    <section class="hero">
+      <h1 class="wordmark" aria-label="Seyes"><span id="typed" aria-hidden="true"></span><span class="bar" aria-hidden="true"></span></h1>
+      <p class="tagline fade">A place to write, on your own computer.</p>
+      <p class="sub fade">Every note is a plain text file in a folder on your Mac. No account, no cloud, nothing to learn.</p>
+      <div class="cta fade">
+        <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
+          Download for Mac
+        </a>
+        <small>Free and open source<br>macOS 13 or later, 72 MB</small>
+      </div>
+    </section>
   </div>
 </div>
 
-<div class="shot">
-  <img src="seyes-light.png" alt="The Seyes window, with folders of notes on the left and a journal entry open on ruled paper." width="1360" height="940">
-</div>
+<section class="stage fade" aria-label="A short demo of writing in Seyes">
+  <div class="stage-frame" id="frame">
+    <div class="win" id="win" aria-hidden="true">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="w-side">
+        <div class="w-head"><span>Seyes</span></div>
+        <div class="w-new" id="newBtn">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2.5l3 3-8 8h-3v-3z"/><path d="M9 4l3 3"/></svg>
+          <span>New note</span><kbd>⌘N</kbd>
+        </div>
+        <div class="w-tree" id="tree">
+          <div class="w-row folder"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M1.5 3.5h4l1.3 1.6h7.7v8.4h-13v-10z"/></svg>Journal</div>
+          <div class="w-row child">Monday</div>
+          <div class="w-row child">Sunday</div>
+          <div class="w-row">Reading list</div>
+        </div>
+      </div>
+      <div class="w-main">
+        <div class="w-top"></div>
+        <div class="w-page">
+          <div class="w-title" id="title"></div>
+          <div class="w-sheet" id="sheet"></div>
+        </div>
+      </div>
+      <svg class="pointer" id="pointer" viewBox="0 0 18 22"><path d="M1.5 1.5v16l4.2-4 2.7 6.3 2.6-1.1-2.7-6.2h5.9z" fill="#111" stroke="#fff" stroke-width="1.2" stroke-linejoin="round"/></svg>
+      <div class="keycap" id="keycap"></div>
+      <div class="file" id="file">
+        <div class="file-bar"><i></i><i></i><i></i><b>Tuesday.md</b>in ~/Seyes</div>
+        <pre id="fileText"></pre>
+      </div>
+      <div class="file-note">And on your disk, it's just this.</div>
+    </div>
+  </div>
+  <div class="stage-controls"><button id="pause" type="button">Pause</button><button id="replay" type="button">Replay</button></div>
+</section>
 
-<section id="install">
+<section class="promises">
   <div class="col">
-    <h2>Installing</h2>
-    <p>Seyes is new and isn't signed by Apple yet, so the first time you open it macOS asks you to confirm. This is exactly what you'll see. <strong>You only do it once.</strong></p>
+    <div class="promise reveal"><span class="n">01</span><div><h3>Your notes are plain files.</h3><p>Each one is a .md file you can open in TextEdit, search, back up, or keep forever. Seyes adds nothing to them.</p></div></div>
+    <div class="promise reveal"><span class="n">02</span><div><h3>Nothing leaves your Mac.</h3><p>No account, no analytics, no sync you didn't ask for. Seyes only goes online when you check for updates.</p></div></div>
+    <div class="promise reveal"><span class="n">03</span><div><h3>Delete the app, keep the writing.</h3><p>Seyes is a window onto a folder. If you stop using it tomorrow, everything you wrote is still right there.</p></div></div>
+  </div>
+</section>
+
+<section class="install" id="install">
+  <div class="col reveal">
+    <h2>Installing takes a minute</h2>
+    <p class="lead">Seyes is new and isn't signed by Apple yet, so macOS asks you to confirm it the first time. You only do this once.</p>
 
     <ol class="steps">
-      <li>
-        <h3>Open the download and drag Seyes into Applications</h3>
-        <p>Open <b>Seyes.dmg</b> from your Downloads folder. A window appears with Seyes and your Applications folder. Drag Seyes onto Applications.</p>
-      </li>
-
-      <li>
-        <h3>Open Seyes, then click Done</h3>
-        <p>Open Seyes from Applications. macOS shows a box saying <b>"Seyes" Not Opened</b>. Click <b>Done</b>.</p>
-        <p class="warn">Don't click Move to Trash. That throws the app away and you'd have to start again.</p>
+      <li><div><h3>Drag Seyes into Applications</h3><p>Open <b>Seyes.dmg</b> from your Downloads and drag the icon onto the Applications folder.</p></div></li>
+      <li><div>
+        <h3>Open it, then click Done</h3>
+        <p>macOS says <b>"Seyes" Not Opened</b>. Click <b>Done</b>.</p>
+        <p class="warn">Not Move to Trash. That throws the app away.</p>
         <div class="mock alert" aria-hidden="true">
           <img src="icon.png" alt="">
           <div class="t">"Seyes" Not Opened</div>
           <div class="b">Apple could not verify "Seyes" is free of malware that may harm your Mac or compromise your privacy.</div>
-          <span class="btn go">Done</span>
-          <span class="btn no">Move to Trash</span>
+          <span class="btn go">Done</span><span class="btn no">Move to Trash</span>
         </div>
-        <p class="caption">What you'll see. Click Done.</p>
-      </li>
-
-      <li>
+      </div></li>
+      <li><div>
         <h3>Allow it in System Settings</h3>
-        <p>Open <b>System Settings</b> and click <b>Privacy &amp; Security</b> in the sidebar. Scroll down to the Security section. Next to the line about Seyes, click <b>Open Anyway</b>.</p>
-        <div class="mock pane" aria-hidden="true">
-          <div class="crumb">Privacy &amp; Security</div>
-          <div class="row"><span>"Seyes" was blocked to protect your Mac.</span><em>Open Anyway</em></div>
-        </div>
-        <p class="caption">Near the bottom of Privacy &amp; Security.</p>
-      </li>
-
-      <li>
-        <h3>Confirm, and start writing</h3>
-        <p>macOS asks one last time. Click <b>Open Anyway</b> and enter your password or use Touch ID. Seyes opens and asks where to keep your writing. It suggests a folder that stays on your Mac. From now on it opens like any other app.</p>
-      </li>
+        <p>Open <b>System Settings</b>, then <b>Privacy &amp; Security</b>. Scroll down and click <b>Open Anyway</b> next to Seyes, then confirm with your password or Touch ID. Seyes opens and asks where to keep your writing.</p>
+        <div class="mock pane" aria-hidden="true"><div class="row"><span>"Seyes" was blocked to protect your Mac.</span><em>Open Anyway</em></div></div>
+      </div></li>
     </ol>
 
-    <p class="aside">Clicked Move to Trash by accident? Open the Trash, drag Seyes back into Applications, and start again from step 2.</p>
-  </div>
-</section>
-
-<section>
-  <div class="col">
-    <h2>Why macOS warns you</h2>
-    <p>Apple lets apps skip this warning if the developer pays for a yearly certificate and sends each version to Apple to be scanned. Seyes doesn't have one yet. The warning means Apple hasn't checked the app. It doesn't mean something is wrong with it.</p>
-    <p>If you'd rather check for yourself, all of Seyes' code is <a href="https://github.com/oscomarch/seyes">on GitHub</a>, and the file you download is built from it.</p>
     <details>
-      <summary>Check that your download is the real one</summary>
-      <p>In Terminal, run <code>shasum -a 256 ~/Downloads/Seyes.dmg</code>. The result should match the one listed on the <a href="https://github.com/oscomarch/seyes/releases/latest">release page</a>. For version 0.5 it's <code>7c2fbe4d50e122db154bf3b6b2e7fc739c3a044c32c6dcb1480bcfda0464071b</code>.</p>
+      <summary>Why macOS warns about it</summary>
+      <p>Apple lets an app skip this step if its developer pays for a yearly certificate and sends each version in to be scanned. Seyes doesn't have one yet. The warning means Apple hasn't checked the app, not that anything is wrong with it. All of its code is <a href="https://github.com/oscomarch/seyes">on GitHub</a>.</p>
+    </details>
+    <details>
+      <summary>Clicked Move to Trash by accident</summary>
+      <p>Open the Trash, drag Seyes back into Applications, and start again from step 2.</p>
+    </details>
+    <details>
+      <summary>Check the download is the real one</summary>
+      <p>In Terminal, run <code>shasum -a 256 ~/Downloads/Seyes.dmg</code> and compare it with the one on the <a href="https://github.com/oscomarch/seyes/releases/latest">release page</a>.</p>
     </details>
   </div>
 </section>
 
-<section>
-  <div class="col">
-    <h2>What happens to your writing</h2>
-    <p>Seyes is a window onto a folder. Your writing never lives inside the app.</p>
-    <div class="facts">
-      <div class="fact"><h3>Plain files</h3><p>Every note is a .md file. Open it in TextEdit, back it up, or put it in Git.</p></div>
-      <div class="fact"><h3>Stays on your Mac</h3><p>No account and no analytics. Seyes only goes online if you choose Check for Updates.</p></div>
-      <div class="fact"><h3>Yours to keep</h3><p>Stop using Seyes tomorrow and your writing is still right there in its folder.</p></div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="col">
-    <h2>Updating and removing</h2>
-    <p>To update, choose <strong>Check for Updates</strong> in the Seyes menu. If there's a new version it opens the download, and you drag it into Applications to replace the old one. Until Seyes is signed, macOS asks you to confirm each new version the same way as the first time. Your writing isn't touched.</p>
-    <p>To remove Seyes, drag it from Applications to the Trash. Your writing stays in its folder.</p>
+<section class="end paper">
+  <div class="col reveal">
+    <h2>Start writing.</h2>
+    <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
+      Download for Mac
+    </a>
   </div>
 </section>
 
 <footer>
-  <div class="col">Seyes is free and open source. The code is <a href="https://github.com/oscomarch/seyes">on GitHub</a>, under the MIT license.</div>
+  <div class="col"><span>Seyes is free and open source, under the MIT license.</span><a href="https://github.com/oscomarch/seyes">View it on GitHub</a></div>
 </footer>
 
+<script>
+(() => {
+  const still = matchMedia('(prefers-reduced-motion: reduce)').matches
+  const $ = (id) => document.getElementById(id)
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+  /* ---------- hero: type the name, then let the rest arrive ---------- */
+  const fades = [...document.querySelectorAll('.hero .fade')]
+  ;(async () => {
+    const out = $('typed'), name = 'seyes'
+    if (still) { out.textContent = name; fades.forEach((el) => el.classList.add('in')); return }
+    await sleep(700)
+    for (const ch of name) { out.textContent += ch; await sleep(120 + Math.random() * 70) }
+    out.parentElement.classList.add('done')
+    for (const el of fades) { await sleep(180); el.classList.add('in') }
+  })()
+
+  /* ---------- reveal on scroll ---------- */
+  const seen = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); seen.unobserve(e.target) }
+  }, { threshold: 0.15 })
+  document.querySelectorAll('.reveal, .stage.fade').forEach((el) => seen.observe(el))
+
+  /* ---------- the scene: a real-size window, scaled to fit ---------- */
+  const win = $('win'), frame = $('frame')
+  let W = 1000
+  const fit = () => {
+    const narrow = frame.clientWidth < 640
+    W = narrow ? 560 : 1000
+    win.classList.toggle('narrow', narrow); frame.classList.toggle('narrow', narrow)
+    win.style.transform = `scale(${frame.clientWidth / W})`
+  }
+  fit(); addEventListener('resize', fit)
+
+  // It plays only while on screen and not paused: every step waits on `gate`.
+  let visible = false, paused = false, wake = null, run = 0
+  const gate = () => (visible && !paused) ? null : new Promise((r) => { wake = r })
+  const open = () => { if (visible && !paused && wake) { wake(); wake = null } }
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; open() }, { threshold: 0.35 }).observe(frame)
+
+  class Stop extends Error {}
+  async function wait(ms, id) {
+    let left = ms
+    while (left > 0) {
+      if (id !== run) throw new Stop()
+      const g = gate(); if (g) await g
+      const step = Math.min(40, left); await sleep(step); left -= step
+    }
+    if (id !== run) throw new Stop()
+  }
+
+  const title = $('title'), sheet = $('sheet'), tree = $('tree'), pointer = $('pointer')
+  const caret = document.createElement('span'); caret.className = 'caret'
+  const place = (el) => el.appendChild(caret)
+  const idle = (on) => caret.classList.toggle('idle', on)
+
+  async function type(text, id, speed = 1) {
+    idle(false)
+    for (const ch of text) {
+      caret.before(document.createTextNode(ch))
+      let d = (40 + Math.random() * 55) / speed
+      if (ch === ' ') d += 25
+      if (',.'.includes(ch)) d += 200
+      await wait(d, id)
+    }
+    idle(true)
+  }
+  async function key(label, id) {
+    const k = $('keycap'); k.textContent = label; k.classList.add('show')
+    await wait(700, id); k.classList.remove('show')
+  }
+  function moveTo(el, dx, dy) {
+    const w = win.getBoundingClientRect(), b = el.getBoundingClientRect(), s = w.width / W
+    pointer.style.transform = `translate(${(b.left - w.left) / s + dx}px, ${(b.top - w.top) / s + dy}px)`
+  }
+  const newP = () => { const p = document.createElement('p'); sheet.appendChild(p); place(p); return p }
+  const newLi = (ul) => { const l = document.createElement('li'); ul.appendChild(l); place(l); return l }
+
+  const FILE = `Slept well. Wrote before coffee, which is the whole trick.
+
+Things for today
+
+- Call Léa
+- Finish the draft
+  - only the first page
+- Walk after lunch
+`
+
+  function reset() {
+    title.innerHTML = ''; sheet.innerHTML = ''
+    $('file').classList.remove('show'); $('keycap').classList.remove('show')
+    tree.querySelector('[data-new]')?.remove()
+    pointer.style.transition = 'none'; pointer.style.opacity = 1; pointer.style.transform = 'translate(640px, 420px)'
+    pointer.getBoundingClientRect(); pointer.style.transition = ''
+  }
+
+  async function scene(id) {
+    reset()
+    await wait(900, id)
+    // Click New note (on a phone the sidebar is hidden, so the note just appears).
+    if (W === 1000) {
+      moveTo($('newBtn'), 70, 10); await wait(1000, id)
+      $('newBtn').classList.add('press'); await wait(140, id); $('newBtn').classList.remove('press')
+    } else pointer.style.opacity = 0
+    const row = document.createElement('div'); row.className = 'w-row on enter'; row.dataset.new = '1'; row.textContent = 'Untitled'
+    tree.appendChild(row)
+    title.innerHTML = '<span class="t">Untitled</span>'
+    await wait(650, id)
+    pointer.style.opacity = 0
+    // Name it by typing, then Enter into the page.
+    title.innerHTML = ''; place(title)
+    await type('Tuesday', id, 0.9); row.textContent = 'Tuesday'
+    await wait(300, id); await key('Enter', id)
+    newP(); await type('Slept well. Wrote before coffee, which is the whole trick.', id)
+    await wait(450, id)
+    newP(); await type('Things for today', id)
+    await wait(350, id)
+    // Tab turns the line into a bullet.
+    const p = newP(); await wait(250, id); await key('Tab', id)
+    const ul = document.createElement('ul'); p.replaceWith(ul); let item = newLi(ul)
+    await type('Call Léa', id); await wait(280, id)
+    item = newLi(ul); await type('Finish the draft', id); await wait(280, id)
+    // Tab again indents it.
+    item = newLi(ul); await wait(250, id); await key('Tab', id)
+    const inner = document.createElement('ul'); ul.children[1].appendChild(inner); item.remove(); item = newLi(inner)
+    await type('only the first page', id); await wait(320, id)
+    // Shift+Tab brings it back out.
+    item = newLi(inner); await wait(250, id); await key('⇧ Tab', id)
+    item.remove(); item = newLi(ul)
+    await type('Walk after lunch', id)
+    await wait(1400, id)
+    // The point: on disk it's just a text file.
+    $('fileText').textContent = FILE; $('file').classList.add('show')
+    await wait(5600, id)
+  }
+
+  function showFinal() {
+    reset()
+    const row = document.createElement('div'); row.className = 'w-row on'; row.dataset.new = '1'; row.textContent = 'Tuesday'; tree.appendChild(row)
+    title.textContent = 'Tuesday'
+    sheet.innerHTML = '<p>Slept well. Wrote before coffee, which is the whole trick.</p><p>Things for today</p><ul><li>Call Léa</li><li>Finish the draft<ul><li>only the first page</li></ul></li><li>Walk after lunch</li></ul>'
+    pointer.style.opacity = 0; $('fileText').textContent = FILE; $('file').classList.add('show')
+  }
+
+  async function loop() {
+    const id = ++run
+    try { for (;;) await scene(id) } catch (e) { if (!(e instanceof Stop)) throw e }
+  }
+
+  if (still) { showFinal(); $('pause').hidden = true; $('replay').hidden = true }
+  else loop()
+
+  $('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? 'Play' : 'Pause'; open() }
+  $('replay').onclick = () => { paused = false; $('pause').textContent = 'Pause'; loop(); open() }
+})()
+</script>
 </body>
 </html>
