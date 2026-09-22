@@ -22,16 +22,22 @@
   }
 
   /* ---------- the menu bar across the top of the screen ---------- */
+  /* As on macOS 26: no bar behind it, just the menus over the wallpaper,
+     white on dark wallpapers and near-black on light ones. */
   .menubar {
-    position: absolute; left: 0; right: 0; top: 0; height: 24px; z-index: 5;
-    display: flex; align-items: center; gap: 15px; padding: 0 12px;
-    font-family: var(--system); font-size: 11.5px; color: #fff;
-    background: rgba(20, 20, 30, 0.16); -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5);
+    position: absolute; left: 0; right: 0; top: 0; height: 26px; z-index: 5;
+    display: flex; align-items: center; padding: 0 14px 0 16px;
+    font-family: var(--system); font-size: 13px; letter-spacing: -0.08px; color: #fff;
+    text-shadow: 0 0 6px rgba(0, 0, 0, 0.18);
   }
-  .light .menubar { color: #1d1d1f; background: rgba(255, 255, 255, 0.28); }
+  .light .menubar { color: #1b1b1d; text-shadow: none; }
+  .menubar .apple { height: 16px; margin-right: 19px; }
+  .menubar .menus { display: flex; align-items: center; gap: 19px; }
   .menubar b { font-weight: 700; }
-  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
-  .menubar svg { display: block; }
+  .menubar .right { margin-left: auto; display: flex; align-items: center; gap: 15px; }
+  .menubar .right img { display: block; }
+  .menubar .dark-only { display: block; } .menubar .light-only { display: none !important; }
+  .light .menubar .dark-only { display: none !important; } .light .menubar .light-only { display: block !important; }
 
   /* ---------- the Dock ---------- */
   .dock {
@@ -42,7 +48,9 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
   }
   .dock .app { position: relative; width: 44px; height: 44px; }
-  .dock .app > * { width: 44px; height: 44px; border-radius: 10px; display: block; }
+  .dock .app > * { width: 44px; height: 44px; display: block; }
+  /* The Seyes icon is drawn inset like the others, which have their own margins. */
+  .dock .app:nth-child(7) > img { transform: scale(0.9); }
   .dock .app.running::after { content: ''; position: absolute; left: 50%; bottom: -5px; width: 3.5px; height: 3.5px; margin-left: -1.75px; border-radius: 50%; background: rgba(255, 255, 255, 0.85); }
   .light .dock .app.running::after { background: rgba(0, 0, 0, 0.6); }
   .dock .sep { width: 0.5px; align-self: stretch; margin: 4px 1px; background: rgba(255, 255, 255, 0.45); }
@@ -94,10 +102,13 @@
 <div class="grain"></div>
 
 <div class="menubar">
-  <b>Seyes</b><span>File</span><span>Edit</span><span>View</span><span>Window</span>
+  <img class="apple dark-only" src="__SYM_apple-white__" alt=""><img class="apple light-only" src="__SYM_apple-black__" alt="">
+  <div class="menus"><b>Seyes</b><span>Edit</span><span>View</span><span>Window</span></div>
   <div class="right">
-    <svg width="22" height="11" viewBox="0 0 22 11" fill="none" stroke="currentColor"><rect x="0.5" y="0.5" width="18" height="10" rx="2.5" stroke-opacity=".5"/><rect x="2" y="2" width="12.5" height="7" rx="1.2" fill="currentColor" stroke="none"/><path d="M20.5 3.8v3.4" stroke-width="1.4" stroke-linecap="round" stroke-opacity=".5"/></svg>
-    <svg width="15" height="11" viewBox="0 0 15 11" fill="currentColor"><path d="M7.5 2.2c2.1 0 4 .8 5.5 2.1l1.1-1.2A9.6 9.6 0 0 0 7.5.6 9.6 9.6 0 0 0 .9 3.1L2 4.3a8 8 0 0 1 5.5-2.1zm0 3.1c1.3 0 2.5.5 3.4 1.3l1.1-1.2a6.6 6.6 0 0 0-9 0l1.1 1.2c.9-.8 2.1-1.3 3.4-1.3zm0 3.1c.5 0 1 .2 1.3.5L7.5 10.4 6.2 8.9c.3-.3.8-.5 1.3-.5z"/></svg>
+    <img class="dark-only" src="__SYM_battery-white__" style="height:11px"><img class="light-only" src="__SYM_battery-black__" style="height:11px">
+    <img class="dark-only" src="__SYM_wifi-white__" style="height:13px"><img class="light-only" src="__SYM_wifi-black__" style="height:13px">
+    <img class="dark-only" src="__SYM_search-white__" style="height:14px"><img class="light-only" src="__SYM_search-black__" style="height:14px">
+    <img class="dark-only" src="__SYM_controls-white__" style="height:14px"><img class="light-only" src="__SYM_controls-black__" style="height:14px">
     <span id="clock"></span>
   </div>
 </div>
@@ -117,16 +128,17 @@
   </div>
 </div>
 
-<!-- Generic app icons in the spirit of a Dock, deliberately not Apple's own. -->
+<!-- The Dock, with this Mac's own app icons (exported by icons.swift). -->
 <div class="dock">
-  <div class="app running"><svg viewBox="0 0 44 44"><defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6fb7ff"/><stop offset="1" stop-color="#2f7be0"/></linearGradient></defs><rect width="44" height="44" rx="10" fill="url(#g1)"/><path d="M10 15h9l2.5 3H34v13H10z" fill="#fff" opacity=".92"/></svg></div>
-  <div class="app"><svg viewBox="0 0 44 44"><defs><linearGradient id="g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e3e6ec"/></linearGradient></defs><rect width="44" height="44" rx="10" fill="url(#g2)"/><circle cx="22" cy="22" r="11" fill="none" stroke="#3a86d6" stroke-width="2.2"/><path d="M11 22h22M22 11c-4 4-4 18 0 22M22 11c4 4 4 18 0 22" fill="none" stroke="#3a86d6" stroke-width="1.6"/></svg></div>
-  <div class="app"><svg viewBox="0 0 44 44"><defs><linearGradient id="g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7cc8ff"/><stop offset="1" stop-color="#3b8ef0"/></linearGradient></defs><rect width="44" height="44" rx="10" fill="url(#g3)"/><rect x="10" y="14" width="24" height="16" rx="2" fill="#fff"/><path d="M10.5 15l11.5 9 11.5-9" fill="none" stroke="#3b8ef0" stroke-width="1.8"/></svg></div>
-  <div class="app"><svg viewBox="0 0 44 44"><rect width="44" height="44" rx="10" fill="#fff"/><path d="M10 0h24a10 10 0 0 1 10 10v3H0v-3A10 10 0 0 1 10 0z" fill="#f0564a"/><text x="22" y="35" text-anchor="middle" font-family="-apple-system, Helvetica" font-size="18" font-weight="300" fill="#1d1d1f" id="dockDay">22</text></svg></div>
-  <div class="app"><svg viewBox="0 0 44 44"><defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ff6a8a"/><stop offset="1" stop-color="#f33d5f"/></linearGradient></defs><rect width="44" height="44" rx="10" fill="url(#g5)"/><path d="M18 30V15l12-3v15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/><circle cx="15.5" cy="30" r="3.2" fill="#fff"/><circle cx="27.5" cy="27" r="3.2" fill="#fff"/></svg></div>
+  <div class="app running"><img src="__APP_finder__" alt=""></div>
+  <div class="app"><img src="__APP_safari__" alt=""></div>
+  <div class="app"><img src="__APP_messages__" alt=""></div>
+  <div class="app"><img src="__APP_mail__" alt=""></div>
+  <div class="app"><img src="__APP_photos__" alt=""></div>
+  <div class="app"><img src="__APP_music__" alt=""></div>
   <div class="app running"><img src="__ICON__" alt=""></div>
   <div class="sep"></div>
-  <div class="app"><svg viewBox="0 0 44 44"><rect x="4" y="4" width="36" height="36" rx="9" fill="rgba(255,255,255,0.3)"/><path d="M15 16h14l-1.4 16H16.4z" fill="none" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linejoin="round"/><path d="M13.5 16h17M19 13h6" stroke="rgba(255,255,255,0.95)" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+  <div class="app"><img src="__APP_trash__" alt=""></div>
 </div>
 
 <svg class="pointer" id="pointer" width="25" height="33" viewBox="0 0 18 24" style="opacity:0"><g id="arrow"><path d="M2 1.5v17.2l4.3-4.1 2.8 6.6 2.9-1.2-2.8-6.5h6.1z" fill="#111" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></g><g id="beam" style="display:none"><path d="M5 2.5c1.6 0 2.6.4 3.5 1.2.9-.8 1.9-1.2 3.5-1.2M5 21.5c1.6 0 2.6-.4 3.5-1.2.9.8 1.9 1.2 3.5 1.2M8.5 3.7v16.6M6.5 12h4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M5 2.5c1.6 0 2.6.4 3.5 1.2.9-.8 1.9-1.2 3.5-1.2M5 21.5c1.6 0 2.6-.4 3.5-1.2.9.8 1.9 1.2 3.5 1.2M8.5 3.7v16.6M6.5 12h4" fill="none" stroke="#111" stroke-width="1.3" stroke-linecap="round"/></g></svg>
@@ -155,7 +167,6 @@ const $ = (id) => document.getElementById(id)
 $('bg').style.background = MOODS[T.mood] || MOODS.dusk
 if (LIGHT[T.mood]) document.body.classList.add('light')
 $('clock').textContent = T.clock
-$('dockDay').textContent = T.day
 
 const sheet = $('sheet'), titleEl = $('title'), scrollEl = $('scroll'), page = $('page')
 const bubble = $('bubble'), pointer = $('pointer'), spans = bubble.querySelectorAll('span')

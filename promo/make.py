@@ -4,6 +4,7 @@ Turn a poem into a vertical video of it being typed into Seyes.
 
     python3 promo/make.py promo/poems/hope.md        # one poem
     python3 promo/make.py promo/poems/*.md           # all of them
+    python3 promo/make.py --keys natural <poem>      # synthesised keys instead of the recording
     python3 promo/make.py --keys soft <poem>         # the first, lighter key sound
 
 Writes promo/out/<poem>.mp4: 1080 x 1920, 30 fps, with a soft key sound
@@ -19,6 +20,7 @@ import base64
 import hashlib
 import json
 import random
+import re
 import subprocess
 import sys
 import tempfile
@@ -125,7 +127,8 @@ def plan(title, body, author, seed):
 
 # ---------------------------------------------------------------- sound
 #
-# Two sounds. "natural" (the default) is modelled on a laptop keyboard heard
+# Three sounds. "real" (the default once promo/keys/bank.npz exists) is
+# Oscar's own keyboard, recorded and cut up by keys.py. "natural" is modelled on a laptop keyboard heard
 # from a little way off: each key has its own voice, keys sit left to right
 # in stereo, soft or firm with the rhythm, in a small room. "soft" is the
 # first version, kept because it was liked: lighter and more even.
@@ -279,7 +282,45 @@ def soft_soundtrack(ops, seconds, seed, finale):
     return np.stack([track, track], axis=1)
 
 
-SOUNDS = {"natural": natural_soundtrack, "soft": soft_soundtrack}
+def real_soundtrack(ops, seconds, seed, finale):
+    """Oscar's own keyboard, from promo/keys/bank.npz (built by keys.py from a
+    recording). Each key keeps its own recorded keystroke, so an "e" always
+    sounds like the same "e", placed left to right in stereo like the others,
+    softer when the typing is quick. No room is added: the recording has its own."""
+    bank = np.load(HERE / "keys" / "bank.npz")
+    small, big = bank["small"], bank["big"]
+    rng = np.random.default_rng(seed)
+
+    def voices(key, pool):
+        pick = random.Random(key)
+        return [pool[pick.randrange(len(pool))] for _ in range(2)]
+
+    cache = {}
+    track = np.zeros((int((seconds + 0.5) * RATE), 2))
+    prev = None
+    for t, _field, op, ch in ops:
+        key = "back" if op == "-" else ch.lower()
+        if key == " ":
+            sound = big[rng.integers(len(big))]  # the space bar never sounds quite the same twice
+        else:
+            if key not in cache:
+                cache[key] = voices(key, big if key == "\n" else small)
+            sound = cache[key][rng.integers(2)]
+        gap = 0.5 if prev is None else t - prev
+        velocity = np.clip(0.72 + 0.5 * min(gap, 0.6), 0.75, 1.05) * rng.uniform(0.92, 1.06)
+        place(track, sound * velocity, t, KEY_X.get(key, 0.0) + rng.uniform(-0.05, 0.05))
+        prev = t
+    click_level = np.max(np.abs(small)) * 0.8 / 0.44
+    for t in (finale["press"], finale["boldAt"] - 0.05, finale["markAt"] - 0.05):
+        place(track, trackpad_click(rng) * click_level, t, 0.15)
+    for t in (finale["release"], finale["boldAt"] + 0.05, finale["markAt"] + 0.05):
+        place(track, trackpad_click(rng, up=True) * click_level, t, 0.15)
+    place(track, voices("arrow", small)[0], finale["deselect"], KEY_X["arrow"])
+    return track * (0.5 / (np.max(np.abs(track)) + 1e-9))
+
+
+SOUNDS = {"real": real_soundtrack, "natural": natural_soundtrack, "soft": soft_soundtrack}
+DEFAULT_KEYS = "real" if (HERE / "keys" / "bank.npz").exists() else "natural"
 
 
 def write_wav(path, samples):
@@ -300,6 +341,20 @@ def sizes(title, body, author):
     font = min(19.0, round(column / (longest * 0.6) * 0.98, 1))
     title_font = min(22.0, round(column / (len(title) * 0.6) * 0.98, 1))
     return font, round(font * 1.75), title_font
+
+
+def mac_icons():
+    """This Mac's own Dock icons and menu-bar symbols, exported once into .build.
+    They're Apple's, so they're made here rather than kept in the repo."""
+    out = BUILD / "icons-out"
+    tool = BUILD / "icons"
+    source = HERE / "icons.swift"
+    if not tool.exists() or tool.stat().st_mtime < source.stat().st_mtime:
+        subprocess.run(["swiftc", "-O", "-o", str(tool), str(source), "-framework", "AppKit"],
+                       check=True, stderr=subprocess.DEVNULL)
+    if not (out / "trash.png").exists():
+        subprocess.run([str(tool), str(out)], check=True, stdout=subprocess.DEVNULL)
+    return out
 
 
 def capture_tool():
@@ -328,7 +383,7 @@ def finale_times(end, author):
     return {k: round(v, 4) for k, v in f.items()}
 
 
-def make(path, keys="natural"):
+def make(path, keys=DEFAULT_KEYS):
     meta, body = read_poem(path)
     title, author = meta.get("title", path.stem), meta.get("author", "")
     seed = int(hashlib.sha256(path.read_bytes()).hexdigest(), 16) % 2**32
@@ -346,8 +401,10 @@ def make(path, keys="natural"):
             "clock": meta.get("clock", "Tue 22 Sep  21:14"), "day": meta.get("day", "22"),
         }
         page = (HERE / "scene.html").read_text(encoding="utf-8")
-        icon = base64.b64encode((HERE.parent / "docs" / "icon.png").read_bytes()).decode()
-        page = page.replace("__ICON__", f"data:image/png;base64,{icon}")
+        uri = lambda f: "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode()
+        page = page.replace("__ICON__", uri(HERE.parent / "docs" / "icon.png"))
+        icons = mac_icons()
+        page = re.sub(r"__(?:APP|SYM)_([a-z-]+)__", lambda m: uri(icons / f"{m.group(1)}.png"), page)
         page = page.replace("<script>", f"<script>window.TIMELINE = {json.dumps(timeline, ensure_ascii=False)}</script>\n<script>", 1)
         page = page.replace(".title { font-weight: 700; font-size: 21px;", f".title {{ font-weight: 700; font-size: {title_font}px;")
         (tmp / "scene.html").write_text(page, encoding="utf-8")
@@ -374,7 +431,7 @@ def make(path, keys="natural"):
 if __name__ == "__main__":
     BUILD.mkdir(exist_ok=True)
     args = sys.argv[1:]
-    keys = "natural"
+    keys = DEFAULT_KEYS
     if "--keys" in args:
         i = args.index("--keys")
         keys = args[i + 1]

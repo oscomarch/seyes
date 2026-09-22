@@ -7,19 +7,26 @@ python3 promo/make.py promo/poems/hope.md
 ```
 
 Each poem becomes `promo/out/<poem>.mp4`, 1080 x 1920 at 30 fps, about 40 seconds.
-The Seyes window sits on a generated background between a menu bar and a
-Dock. When the poem is done, the author's name is selected by hand, made bold
-and highlighted from Seyes' own formatting bar. There's a key sound under
-every keystroke and no music. Add the music in TikTok or Instagram when you
-post, where it's licensed.
+The Seyes window sits on a generated background, under a macOS menu bar and
+above a Dock with this Mac's own app icons (exported on the fly by
+`icons.swift`, never committed). When the poem is done, the author's name is
+selected by hand, made bold and highlighted from Seyes' own formatting bar.
+There's a key sound under every keystroke and no music. Add the music in
+TikTok or Instagram when you post, where it's licensed.
 
-The key sound is `natural` by default, each key with its own voice, placed
-left to right in stereo, in a small room. The first, lighter sound is still
-there.
+The key sound is a real keyboard. `keys.py` takes a recording of someone
+typing, cleans out the background hiss, cuts it into single keystrokes and
+sorts out the big keys, into `keys/bank.npz`. Each key keeps its own
+keystroke and is placed left to right in stereo where it sits on the
+keyboard. To use another recording, record 30 seconds of typing in a quiet
+room and run
 
 ```
-python3 promo/make.py --keys soft promo/poems/hope.md
+python3 promo/keys.py ~/Downloads/typing.m4a
 ```
+
+Two synthesised sounds are there too, `--keys natural` and the first,
+lighter `--keys soft`.
 
 ## Adding a poem
 
