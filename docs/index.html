@@ -85,6 +85,51 @@
   .fade { opacity: 0; transform: translateY(10px); transition: opacity .9s var(--ease), transform .9s var(--ease); }
   .fade.in { opacity: 1; transform: none; }
 
+  /* ---------- hero, with the poem video beside it ---------- */
+
+  .paper.top::after { left: max(12px, calc(50% - 530px)); }
+  .col.wide { max-width: 1020px; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 56px; align-items: center; }
+  .phone {
+    width: 250px; aspect-ratio: 9 / 16; border-radius: 26px; overflow: hidden; background: #1c1712;
+    box-shadow: 0 30px 60px rgba(40, 30, 20, 0.22), 0 0 0 7px #17110b, 0 0 0 8px rgba(0, 0, 0, 0.2);
+    margin-right: 8px;
+  }
+  .phone video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  @media (max-width: 820px) {
+    .hero-grid { grid-template-columns: 1fr; gap: 40px; }
+    .phone { margin: 0 auto; width: min(250px, 70vw); }
+  }
+
+  /* ---------- the email step before the download ---------- */
+
+  .gate { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 20px;
+    background: rgba(23, 17, 11, 0.42); opacity: 0; pointer-events: none; transition: opacity .25s var(--ease); }
+  .gate.open { opacity: 1; pointer-events: auto; }
+  .gate-card {
+    width: 100%; max-width: 420px; background: var(--paper); border-radius: 4px; padding: 30px 28px 24px; position: relative;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.25); transform: translateY(12px); transition: transform .35s var(--ease);
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 31px, var(--ruling) 31px, var(--ruling) 32px);
+  }
+  .gate.open .gate-card { transform: none; }
+  .gate h2 { font-size: 22px; margin: 0 0 6px; }
+  .gate p { margin: 0 0 18px; color: var(--muted); font-size: 14px; line-height: 1.6; }
+  .gate form { display: flex; flex-direction: column; gap: 10px; }
+  .gate input[type=email] {
+    font: inherit; font-size: 15px; padding: 13px 14px; border: 1px solid var(--rule-strong); border-radius: 2px;
+    background: var(--card); color: var(--ink); outline: none;
+  }
+  .gate input[type=email]:focus { border-color: var(--ink); }
+  .gate .trap { position: absolute; left: -9999px; }
+  .gate button[type=submit] { justify-content: center; border: none; cursor: pointer; font-family: inherit; }
+  .gate .fine { font-size: 12px; margin: 14px 0 0; }
+  .gate .fine a { color: var(--muted); }
+  .gate .error { color: var(--danger); font-size: 13px; margin: 0; min-height: 1em; }
+  .gate .close { position: absolute; top: 10px; right: 12px; background: none; border: none; font: inherit; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 6px; }
+  .gate .done { display: none; }
+  .gate.sent .ask { display: none; }
+  .gate.sent .done { display: block; }
+
   /* ---------- the scene ---------- */
 
   .stage { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
@@ -230,23 +275,28 @@
 </head>
 <body>
 
-<div class="paper">
-  <div class="col">
+<div class="paper top">
+  <div class="col wide">
     <header>
       <a class="mark" href="#"><img src="icon.png" alt="">seyes</a>
       <nav><a href="#install">Install</a><a href="https://github.com/oscomarch/seyes">GitHub</a></nav>
     </header>
 
-    <section class="hero">
-      <h1 class="wordmark" aria-label="Seyes"><span id="typed" aria-hidden="true"></span><span class="bar" aria-hidden="true"></span></h1>
-      <p class="tagline fade">A place to write, on your own computer.</p>
-      <p class="sub fade">Every note is a plain text file in a folder on your Mac. No account, no cloud, nothing to learn.</p>
-      <div class="cta fade">
-        <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
-          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
-          Download for Mac
-        </a>
-        <small>Free and open source<br>macOS 13 or later, 72 MB</small>
+    <section class="hero hero-grid">
+      <div>
+        <h1 class="wordmark" aria-label="Seyes"><span id="typed" aria-hidden="true"></span><span class="bar" aria-hidden="true"></span></h1>
+        <p class="tagline fade">A place to write, on your own computer.</p>
+        <p class="sub fade">Every note is a plain text file in a folder on your Mac. No account, no cloud, nothing to learn.</p>
+        <div class="cta fade">
+          <a class="download js-download" data-where="hero" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
+            Download for Mac
+          </a>
+          <small>Free and open source<br>macOS 13 or later, 72 MB</small>
+        </div>
+      </div>
+      <div class="phone fade">
+        <video src="poem.mp4" poster="poem.jpg" autoplay muted loop playsinline preload="metadata" aria-label="A poem being typed in Seyes"></video>
       </div>
     </section>
   </div>
@@ -339,15 +389,40 @@
 <section class="end paper">
   <div class="col reveal">
     <h2>Start writing.</h2>
-    <a class="download" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
+    <a class="download js-download" data-where="end" href="https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
       Download for Mac
     </a>
   </div>
 </section>
 
+<div class="gate" id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+  <div class="gate-card">
+    <button class="close" type="button" aria-label="Close" data-close>&times;</button>
+    <div class="ask">
+      <h2 id="gate-title">Download Seyes</h2>
+      <p>Leave your email and the download starts right away.</p>
+      <form id="gate-form" novalidate>
+        <input type="email" name="email" id="gate-email" placeholder="you@example.com" autocomplete="email" required>
+        <input type="text" name="website" class="trap" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p class="error" id="gate-error" role="alert"></p>
+        <button class="download" type="submit">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2v8.5M4.5 7.5 8 11l3.5-3.5M2.5 13.5h11"/></svg>
+          Download for Mac
+        </button>
+      </form>
+      <p class="fine">We'll only write when there's a new version of Seyes. Unsubscribe in one click. <a href="privacy.html">Privacy</a></p>
+    </div>
+    <div class="done">
+      <h2>Your download has started.</h2>
+      <p>Open <b>Seyes.dmg</b> from your Downloads and drag Seyes into Applications. The first time, macOS asks you to confirm it once.</p>
+      <a class="download" href="#install" data-close>See how, it takes a minute</a>
+    </div>
+  </div>
+</div>
+
 <footer>
-  <div class="col"><span>Seyes is free and open source, under the MIT license.</span><a href="https://github.com/oscomarch/seyes">View it on GitHub</a></div>
+  <div class="col"><span>Seyes is free and open source, under the MIT license.</span><span><a href="privacy.html">Privacy</a> &nbsp; <a href="https://github.com/oscomarch/seyes">GitHub</a></span></div>
 </footer>
 
 <script>
@@ -505,6 +580,119 @@ Things for today
   $('pause').onclick = () => { paused = !paused; $('pause').textContent = paused ? 'Play' : 'Pause'; open() }
   $('replay').onclick = () => { paused = false; $('pause').textContent = 'Pause'; loop(); open() }
 })()
+</script>
+
+<script type="module">
+/*
+ * The email step before the download, and the page's analytics.
+ *
+ * Fill these in once the Supabase and PostHog projects exist. Both keys are
+ * public by design: the Supabase anon key can only ADD a row to `emails`
+ * (see infra/emails.sql), and a PostHog project key can only send events.
+ * Until they're set, the download button just downloads.
+ */
+const SEYES = {
+  supabaseUrl: '',            // https://xxxx.supabase.co
+  supabaseAnonKey: '',
+  posthogKey: '',             // phc_...
+  posthogHost: 'https://eu.i.posthog.com',
+}
+const DMG = 'https://github.com/oscomarch/seyes/releases/latest/download/Seyes.dmg'
+const GAVE_EMAIL = 'seyes:gave-email'
+
+// Where the visitor came from: ?ref=tiktok in the bio link, else the referrer.
+const params = new URLSearchParams(location.search)
+const source = (params.get('ref') || params.get('utm_source') || (document.referrer ? new URL(document.referrer).hostname : 'direct')).slice(0, 64)
+
+/* ---------- analytics: cookieless, events only ---------- */
+let posthog = null
+const queue = []
+function track(event, props = {}) {
+  if (posthog) posthog.capture(event, props)
+  else if (SEYES.posthogKey) queue.push([event, props])
+}
+if (SEYES.posthogKey) {
+  import('https://cdn.jsdelivr.net/npm/posthog-js@1/+esm').then(({ default: ph }) => {
+    ph.init(SEYES.posthogKey, {
+      api_host: SEYES.posthogHost,
+      persistence: 'memory',          // no cookies, no local storage, no banner needed
+      person_profiles: 'identified_only',
+      autocapture: false,
+      capture_pageview: true,
+      disable_session_recording: true,
+    })
+    ph.register({ source })
+    posthog = ph
+    for (const [e, p] of queue.splice(0)) ph.capture(e, p)
+  }).catch(() => {})  // blocked by an ad blocker: the page works the same
+}
+
+// Who reads as far as the install steps.
+const install = document.getElementById('install')
+if (install) new IntersectionObserver(([e], o) => { if (e.isIntersecting) { track('install_steps_seen'); o.disconnect() } }, { threshold: 0.3 }).observe(install)
+
+/* ---------- the email step ---------- */
+const gate = document.getElementById('gate')
+const form = document.getElementById('gate-form')
+const input = document.getElementById('gate-email')
+const error = document.getElementById('gate-error')
+let where = 'hero'
+
+function remembered() { try { return localStorage.getItem(GAVE_EMAIL) === '1' } catch { return false } }
+function remember() { try { localStorage.setItem(GAVE_EMAIL, '1') } catch {} }
+
+function download(method) {
+  track('download_started', { where, method })
+  location.href = DMG
+}
+function open() {
+  gate.classList.remove('sent'); gate.classList.add('open'); error.textContent = ''
+  setTimeout(() => input.focus(), 50)
+}
+function close() { gate.classList.remove('open') }
+
+for (const a of document.querySelectorAll('.js-download')) {
+  a.addEventListener('click', (e) => {
+    where = a.dataset.where || 'hero'
+    track('download_clicked', { where })
+    if (remembered()) { e.preventDefault(); return download('returning') }  // already on the list
+    if (!SEYES.supabaseUrl) return  // not set up yet: the link downloads as usual
+    e.preventDefault()
+    open()
+  })
+}
+gate.addEventListener('click', (e) => { if (e.target === gate || e.target.closest('[data-close]')) close() })
+addEventListener('keydown', (e) => { if (e.key === 'Escape') close() })
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const email = input.value.trim().toLowerCase()
+  if (form.website.value) return close()  // a bot filled the hidden field
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 254) {
+    error.textContent = 'That email doesn’t look right. Check it and try again.'
+    return
+  }
+  const button = form.querySelector('button'); button.disabled = true
+  try {
+    const res = await fetch(`${SEYES.supabaseUrl}/rest/v1/emails`, {
+      method: 'POST',
+      headers: {
+        apikey: SEYES.supabaseAnonKey, Authorization: `Bearer ${SEYES.supabaseAnonKey}`,
+        'Content-Type': 'application/json', Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ email, source, locale: (navigator.language || '').slice(0, 16) }),
+    })
+    // 409 means they're already on the list, which is fine.
+    track(res.ok || res.status === 409 ? 'email_submitted' : 'email_save_failed', { where, status: res.status })
+  } catch {
+    track('email_save_failed', { where })
+  }
+  // Never hold the download hostage to our database.
+  remember()
+  gate.classList.add('sent')
+  button.disabled = false
+  download('after_email')
+})
 </script>
 </body>
 </html>
