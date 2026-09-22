@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { existsSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { loadConfig, switchRoot } from '@/lib/config'
-import { describeFolder } from '@/lib/fs/folder'
+import { describeFolder, isInICloud, displayPath } from '@/lib/fs/folder'
 import { sameOriginOnly, GuardError } from '../guard'
 
 export const dynamic = 'force-dynamic'
@@ -22,9 +22,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     sameOriginOnly(request)
-    const { root } = await request.json()
+    const { root, allowICloud } = await request.json()
     if (typeof root !== 'string' || !root.trim()) throw new Error('A root folder is required')
     if (!path.isAbsolute(root.trim())) throw new Error('Use a full path, like /Users/you/Writing')
+    const current = await loadConfig()
+    if (isInICloud(root.trim()) && !isInICloud(current.root) && !allowICloud) {
+      return NextResponse.json({ confirm: 'icloud', display: displayPath(root.trim()) }, { status: 409 })
+    }
     await switchRoot(root.trim())
     return NextResponse.json(await summary())
   } catch (error) {

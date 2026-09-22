@@ -10,8 +10,11 @@ function nativeBridge(): Bridge | null {
  * Inside the Mac app that is a native sheet on the window. In a browser the
  * page can't see real paths, so the local server shows the system dialog on
  * its behalf. Resolves to null when the user cancels.
+ *
+ * `start` is where the picker opens. Without it macOS opens in Documents, so
+ * one careless click on Choose would move the writing folder into iCloud.
  */
-export async function pickFolder(prompt: string): Promise<string | null> {
+export async function pickFolder(prompt: string, start?: string): Promise<string | null> {
   const bridge = nativeBridge()
   if (bridge) {
     const id = Math.random().toString(36).slice(2)
@@ -23,14 +26,14 @@ export async function pickFolder(prompt: string): Promise<string | null> {
         resolve(detail.path)
       }
       window.addEventListener('seyes:picked', onPicked)
-      bridge.postMessage({ type: 'pickFolder', id, prompt })
+      bridge.postMessage({ type: 'pickFolder', id, prompt, start })
     })
   }
 
   const response = await fetch('/api/folder/pick', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt, start }),
   })
   if (response.status === 501) {
     // Not a Mac, so no system picker to borrow. Typing the path still works.

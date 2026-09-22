@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { loadConfig, switchRoot } from '@/lib/config'
-import { moveFolder, describeFolder } from '@/lib/fs/folder'
+import { moveFolder, describeFolder, isInICloud, displayPath } from '@/lib/fs/folder'
 import { sameOriginOnly, GuardError } from '../../guard'
 
 export const dynamic = 'force-dynamic'
@@ -11,9 +11,19 @@ export const dynamic = 'force-dynamic'
 export async function POST(request: Request) {
   try {
     sameOriginOnly(request)
-    const { into } = await request.json()
+    const { into, allowICloud } = await request.json()
     if (typeof into !== 'string' || !path.isAbsolute(into)) throw new Error('Choose where to move the folder')
     const { root } = await loadConfig()
+    const target = path.join(path.resolve(into), path.basename(root))
+
+    if (target === root) return NextResponse.json({ unchanged: true, folder: describeFolder(root) })
+
+    // Writing that lives only on this Mac should never end up in iCloud by
+    // accident, one stray click on Choose away. Ask first.
+    if (isInICloud(target) && !isInICloud(root) && !allowICloud) {
+      return NextResponse.json({ confirm: 'icloud', display: displayPath(target) }, { status: 409 })
+    }
+
     const moved = await moveFolder(root, into)
     await switchRoot(moved, { forget: true })
     // The open page watches the old folder and may ask for its tree in the

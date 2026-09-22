@@ -544,10 +544,13 @@ body::before {
  * lights or they land on top of it. Normally that is the sidebar's head;
  * with the sidebar hidden (cmd+\) the topbar becomes the shell's first
  * child and takes the inset instead. Scoped to data-mac, which only the
- * Mac app sets, so the browser is untouched.
+ * Mac app sets, so the browser is untouched. The app also measures where
+ * macOS put the lights and passes the bar height that centres on them
+ * (--mac-bar) and the inset that clears them (--mac-inset).
  */
-:root[data-mac="1"] .sidebar-head { padding-left: 78px; }
-:root[data-mac="1"] .shell > .main:first-child .topbar { padding-left: 78px; }
+:root[data-mac="1"] { --bar: var(--mac-bar, 42px); }
+:root[data-mac="1"] .sidebar-head { padding-left: var(--mac-inset, 78px); }
+:root[data-mac="1"] .shell > .main:first-child .topbar { padding-left: var(--mac-inset, 78px); }
 
 /*
  * An ordinary text caret, tinted to the accent so it still belongs to the

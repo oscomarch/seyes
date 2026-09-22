@@ -15,6 +15,14 @@ export function Notices() {
       setTimeout(() => setNotices((all) => all.filter((n) => n.id !== id)), tone === 'error' ? 6000 : 3200)
     }
     window.addEventListener('seyes:notify', onNotify)
+    // A message left by the page before it reloaded, e.g. after a folder move.
+    try {
+      const pending = window.sessionStorage.getItem('seyes:notice')
+      if (pending) {
+        window.sessionStorage.removeItem('seyes:notice')
+        onNotify(new CustomEvent('seyes:notify', { detail: { message: pending, tone: 'info' } }))
+      }
+    } catch {}
     return () => window.removeEventListener('seyes:notify', onNotify)
   }, [])
 

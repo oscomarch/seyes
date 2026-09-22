@@ -74,6 +74,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         window.title = "Seyes"
         window.titlebarAppearsTransparent = true
         window.titleVisibility = .hidden
+        // An empty toolbar in the compact style is what gives the title bar
+        // its taller, Apple-standard height with the traffic lights centred
+        // in it. The page's own top bar is then sized to that same strip
+        // (see chromeMetrics), so the lights and the bar share one centre line.
+        window.toolbar = NSToolbar(identifier: "seyes")
+        window.toolbarStyle = .unifiedCompact
+        window.titlebarSeparatorStyle = .none
         window.minSize = NSSize(width: 640, height: 480)
         // Deliberately NOT movableByWindowBackground: in a text editor that
         // turns a drag begun on empty page background into a window move
@@ -89,7 +96,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let config = WKWebViewConfiguration()
         config.userContentController.add(self, name: "chrome")
         config.userContentController.addUserScript(
-            WKUserScript(source: Self.chromeScript, injectionTime: .atDocumentStart, forMainFrameOnly: true))
+            WKUserScript(source: chromeMetrics() + Self.chromeScript,
+                         injectionTime: .atDocumentStart, forMainFrameOnly: true))
         webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = self
         webView.uiDelegate = self
@@ -220,6 +228,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         server?.terminate()
     }
 
+    /// Where macOS actually put the traffic lights, measured rather than
+    /// assumed, handed to the page as CSS variables: the bar height that
+    /// centres on them, and how far in the page's content must start to clear
+    /// them. If a future macOS moves the lights, the page follows.
+    func chromeMetrics() -> String {
+        window.layoutIfNeeded()
+        guard let zoom = window.standardWindowButton(.zoomButton) else { return "" }
+        let lights = zoom.convert(zoom.bounds, to: nil)
+        let bar = ((window.frame.height - lights.midY) * 2).rounded()
+        let inset = (lights.maxX + 10).rounded()
+        return """
+        document.documentElement.style.setProperty('--mac-bar', '\(Int(bar))px');
+        document.documentElement.style.setProperty('--mac-inset', '\(Int(inset))px');
+
+        """
+    }
+
     /// Injected before the page runs. It marks the document so the stylesheet
     /// can inset the leftmost bar past the traffic lights, and it reports
     /// mouse-downs that land on the chrome bars themselves (never on one of
@@ -250,7 +275,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         if let body = message.body as? [String: Any], body["type"] as? String == "pickFolder" {
-            pickFolder(id: body["id"] as? String ?? "", prompt: body["prompt"] as? String ?? "")
+            pickFolder(id: body["id"] as? String ?? "", prompt: body["prompt"] as? String ?? "",
+                       start: body["start"] as? String)
             return
         }
         switch message.body as? String {
@@ -263,7 +289,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     /// The page asks for a folder (to write in, or to move the writing folder
     /// into). A web page can't see real paths, so the app shows the standard
     /// macOS picker as a sheet on the window and hands the path back.
-    func pickFolder(id: String, prompt: String) {
+    func pickFolder(id: String, prompt: String, start: String?) {
         let panel = NSOpenPanel()
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -271,6 +297,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         panel.allowsMultipleSelection = false
         panel.message = prompt
         panel.prompt = "Choose"
+        if let start = start { panel.directoryURL = URL(fileURLWithPath: start, isDirectory: true) }
         panel.beginSheetModal(for: window) { response in
             let path = response == .OK ? panel.url?.path : nil
             let detail: [String: Any] = ["id": id, "path": path ?? NSNull()]

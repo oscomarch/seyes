@@ -79,19 +79,52 @@ describe('Tab in lists', () => {
     expect(markdown()).toBe('- one\n- two')
   })
 
-  it('keeps the key on a plain line and leaves the text alone', () => {
+  it('turns a plain line into a bullet', () => {
     load('just a line')
     caretIn('line')
     expect(press('Tab')).toBe(true)
-    // A tab at the start of a markdown line would turn it into a code block.
-    expect(markdown()).toBe('just a line')
+    expect(markdown()).toBe('- just a line')
   })
 
-  it('does not turn a top-level bullet into a paragraph on Shift+Tab', () => {
+  it('turns an empty line into a bullet, ready to type into', () => {
+    load('first line')
+    caretIn('first line')
+    editor.commands.enter()
+    expect(press('Tab')).toBe(true)
+    editor.commands.insertContent('typed')
+    expect(markdown()).toBe('first line\n\n- typed')
+  })
+
+  it('adds a plain line to the list right above it', () => {
+    load('- one\n\ntwo')
+    caretIn('two')
+    press('Tab')
+    expect(markdown()).toBe('- one\n- two')
+  })
+
+  it('leaves headings alone', () => {
+    load('## A heading')
+    caretIn('heading')
+    expect(press('Tab')).toBe(true)
+    expect(markdown()).toBe('## A heading')
+  })
+
+  it('turns a top-level bullet back into a plain line on Shift+Tab', () => {
     load('- one\n- two')
     caretIn('two')
     expect(press('Tab', { shift: true })).toBe(true)
-    expect(markdown()).toBe('- one\n- two')
+    expect(markdown()).toBe('- one\n\ntwo')
+  })
+
+  it('walks a line down two levels and all the way back', () => {
+    load('- one\n\ntwo')
+    caretIn('two')
+    press('Tab')
+    press('Tab')
+    expect(markdown()).toBe('- one\n  - two')
+    press('Tab', { shift: true })
+    press('Tab', { shift: true })
+    expect(markdown()).toBe('- one\n\ntwo')
   })
 
   it('indents several selected bullets at once', () => {

@@ -7,15 +7,34 @@ import { notify } from '@/lib/client/notify'
 type Folder = { path: string; display: string; name: string; icloud: boolean }
 type Summary = { folder: Folder; recent: Folder[] }
 
-async function post(url: string, body: unknown) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  const data = await response.json()
-  if (!response.ok) throw new Error(data.error ?? 'Something went wrong.')
+async function post(url: string, body: Record<string, unknown>) {
+  const send = async (extra = {}) => {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...body, ...extra }),
+    })
+    return { status: response.status, data: await response.json() }
+  }
+  let { status, data } = await send()
+  // The server won't put writing that stays on this Mac into iCloud without
+  // a yes. Cancelling is a normal outcome, not an error.
+  if (status === 409 && data.confirm === 'icloud') {
+    const yes = window.confirm(
+      `${data.display} syncs with iCloud, so your writing would no longer stay only on this Mac.\n\nUse it anyway?`,
+    )
+    if (!yes) return null
+    ;({ status, data } = await send({ allowICloud: true }))
+  }
+  if (status >= 400) throw new Error(data.error ?? 'Something went wrong.')
   return data
+}
+
+/** Survives the reload that follows a switch, so the new page can say what happened. */
+function noticeAfterReload(message: string) {
+  try {
+    window.sessionStorage.setItem('seyes:notice', message)
+  } catch {}
 }
 
 /**
@@ -77,25 +96,39 @@ export function FolderSwitcher() {
       return false
     })
 
+  // The picker opens where the folder already is. Otherwise macOS opens it in
+  // Documents, and one click on Choose would move the writing into iCloud.
+  const here = summary ? summary.folder.path.slice(0, summary.folder.path.lastIndexOf('/')) || '/' : undefined
+
   const move = () =>
     run('move', async () => {
-      const into = await pickFolder(`Move your writing folder. Choose where "${summary?.folder.name}" should go.`)
+      const into = await pickFolder(`Move your writing folder. Choose where "${summary?.folder.name}" should go.`, here)
       if (!into) return false
-      await post('/api/folder/move', { into })
+      const result = await post('/api/folder/move', { into })
+      if (!result) return false
+      if (result.unchanged) {
+        notify(`Your folder is already there.`)
+        return false
+      }
+      noticeAfterReload(`Moved to ${result.folder.display}`)
       return true
     })
 
   const openOther = () =>
     run('open', async () => {
-      const root = await pickFolder('Choose a folder to write in.')
+      const root = await pickFolder('Choose a folder to write in.', here)
       if (!root) return false
-      await post('/api/settings', { root })
+      const result = await post('/api/settings', { root })
+      if (!result) return false
+      noticeAfterReload(`Now writing in ${result.folder.display}`)
       return true
     })
 
   const switchTo = (root: string) =>
     run(root, async () => {
-      await post('/api/settings', { root })
+      const result = await post('/api/settings', { root })
+      if (!result) return false
+      noticeAfterReload(`Now writing in ${result.folder.display}`)
       return true
     })
 

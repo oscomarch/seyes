@@ -13,19 +13,23 @@ function listDepth(editor: Editor): number {
 
 function indent(editor: Editor) {
   if (editor.isActive('codeBlock')) return editor.commands.insertContent('  ')
-  return ITEMS.some((item) => editor.can().sinkListItem(item) && editor.commands.sinkListItem(item))
+  if (listDepth(editor) > 0) {
+    return ITEMS.some((item) => editor.can().sinkListItem(item) && editor.commands.sinkListItem(item))
+  }
+  // A plain line becomes a bullet, joining a list directly above it if there
+  // is one. Headings, quotes and the rest stay what they are.
+  if (editor.state.selection.$from.parent.type.name !== 'paragraph') return false
+  return editor.commands.toggleBulletList()
 }
 
 function outdent(editor: Editor) {
-  // At the top level, lifting would turn the bullet into a plain paragraph.
-  // Backspace at the start of the line already does that; Shift+Tab should
-  // only ever move an item out one level, never out of the list.
-  if (listDepth(editor) < 2) return false
+  // One step back per press: a nested item moves out a level, and a
+  // top-level item becomes a plain line again, undoing what Tab did to it.
   return ITEMS.some((item) => editor.can().liftListItem(item) && editor.commands.liftListItem(item))
 }
 
 /**
- * Tab and Shift+Tab, the way Notion and Apple Notes do them.
+ * Tab and Shift+Tab: Tab makes a bullet, then indents it; Shift+Tab undoes each step.
  *
  * Tiptap's list items already bind Tab to indent, but when an item cannot be
  * indented (the first bullet of a list, or a plain line) the command fails,
@@ -34,8 +38,9 @@ function outdent(editor: Editor) {
  * always claim the key inside the editor, whether or not anything moved, so
  * Tab never leaves the page. They run ahead of the list items' own bindings.
  *
- * A plain line gets nothing rather than a literal tab: in markdown, a tab at
- * the start of a line turns the paragraph into a code block.
+ * On a plain line Tab makes a bullet, rather than inserting a literal tab: in
+ * markdown, a tab at the start of a line would turn the paragraph into a
+ * code block. Shift+Tab walks every step back.
  */
 export const ListIndent = Extension.create({
   name: 'listIndent',

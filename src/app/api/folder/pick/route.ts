@@ -28,9 +28,10 @@ export async function POST(request: Request) {
     if (process.platform !== 'darwin') {
       return NextResponse.json({ error: 'unsupported' }, { status: 501 })
     }
-    const { prompt } = await request.json()
+    const { prompt, start } = await request.json()
     const { root } = await loadConfig()
-    const args = [...SCRIPT.flatMap((line) => ['-e', line]), String(prompt || 'Choose a folder'), path.dirname(root)]
+    const from = typeof start === 'string' && path.isAbsolute(start) ? start : path.dirname(root)
+    const args = [...SCRIPT.flatMap((line) => ['-e', line]), String(prompt || 'Choose a folder'), from]
 
     const picked = await new Promise<string | null>((resolve, reject) => {
       execFile('osascript', args, (error, stdout, stderr) => {
