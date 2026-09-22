@@ -10,13 +10,28 @@ export type Config = {
 
 const MAX_RECENT = 5
 
+/**
+ * ~/Seyes, not ~/Documents/Seyes. On a Mac with iCloud's "Desktop & Documents
+ * Folders" on, ~/Documents is inside iCloud Drive, and a writing app that
+ * promises to keep things on this machine should not start life in the cloud.
+ */
 export function defaultRoot(): string {
-  return path.join(os.homedir(), 'Documents', 'Seyes')
+  return path.join(os.homedir(), 'Seyes')
 }
 
 /** App state lives here, never inside the user's writing folder. */
 function configPath(): string {
   return path.join(os.homedir(), '.config', 'seyes', 'config.json')
+}
+
+/** Whether a writing folder has ever been chosen. Until then the app shows its welcome. */
+export async function isConfigured(): Promise<boolean> {
+  try {
+    await fs.access(configPath())
+    return true
+  } catch {
+    return false
+  }
 }
 
 /** The saved config as it is, without touching the disk beyond reading it. */

@@ -16,8 +16,8 @@ afterEach(async () => {
 })
 
 describe('config', () => {
-  it('defaults the root to ~/Documents/Seyes', () => {
-    expect(defaultRoot()).toBe(path.join(home, 'Documents', 'Seyes'))
+  it('defaults the root to ~/Seyes, outside iCloud-synced folders', () => {
+    expect(defaultRoot()).toBe(path.join(home, 'Seyes'))
   })
 
   it('creates the root folder on first load', async () => {

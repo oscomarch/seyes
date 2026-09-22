@@ -50,11 +50,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     var window: NSWindow!
     var webView: WKWebView!
     var server: Process?
-    var port = 3000
+    var port = 47813
+    var bundled = false
+    /// A fresh secret each launch. Only the page this app opens gets it, so no
+    /// other program on the Mac can use the local server to read the writing.
+    let key = UUID().uuidString + UUID().uuidString
     var status: NSTextField!
 
     func applicationDidFinishLaunching(_ note: Notification) {
-        port = freePort(from: 3000)
+        // One fixed port, so the page's address stays the same between launches
+        // and its saved preferences (font, sidebar width) survive a restart.
+        port = freePort(from: 47813)
         buildMenu()
         buildWindow()
         startServer()
@@ -131,7 +137,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         NSApp.activate(ignoringOtherApps: true)
     }
 
+    /// The downloadable app carries its own Node and a pre-built server in
+    /// Resources. A development build made with mac/build.sh has neither and
+    /// runs the `seyes` command installed by npm instead.
     func startServer() {
+        if let resources = Bundle.main.resourceURL,
+           FileManager.default.isExecutableFile(atPath: resources.appendingPathComponent("node").path) {
+            startBundledServer(resources)
+            return
+        }
         guard let seyes = findSeyes() else {
             status.stringValue = "Could not find the `seyes` command.\nRun: npm i -g seyes-app"
             status.maximumNumberOfLines = 3
@@ -147,6 +161,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         env["PORT"] = String(port)
         // The app is the window; the launcher must not also open a browser tab.
         env["SEYES_NO_OPEN"] = "1"
+        env["SEYES_KEY"] = key
+        task.environment = env
+        task.standardOutput = FileHandle.nullDevice
+        task.standardError = FileHandle.nullDevice
+        do { try task.run() } catch {
+            status.stringValue = "Seyes could not start."
+            return
+        }
+        server = task
+        waitForServer(attempt: 0)
+    }
+
+    func startBundledServer(_ resources: URL) {
+        bundled = true
+        let task = Process()
+        task.executableURL = resources.appendingPathComponent("node")
+        task.arguments = [resources.appendingPathComponent("server/server.js").path]
+        task.currentDirectoryURL = resources.appendingPathComponent("server")
+        var env = ProcessInfo.processInfo.environment
+        env["PORT"] = String(port)
+        // 127.0.0.1 only. Without it the server would listen on every network
+        // interface and put the writing on whatever wifi the Mac is on.
+        env["HOSTNAME"] = "127.0.0.1"
+        env["SEYES_KEY"] = key
+        env["NODE_ENV"] = "production"
+        env["NEXT_TELEMETRY_DISABLED"] = "1"
         task.environment = env
         task.standardOutput = FileHandle.nullDevice
         task.standardError = FileHandle.nullDevice
@@ -168,11 +208,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             DispatchQueue.main.async {
                 if (response as? HTTPURLResponse)?.statusCode != nil {
                     self.status.isHidden = true
-                    self.webView.load(URLRequest(url: url))
+                    // The first visit trades the key for a cookie and redirects
+                    // to a clean address (see src/lib/access.ts).
+                    var open = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+                    open.queryItems = [URLQueryItem(name: "seyes-key", value: self.key)]
+                    self.webView.load(URLRequest(url: open.url!))
                     return
                 }
                 if attempt == 8 {
-                    self.status.stringValue = "Building Seyes. This happens once after an update…"
+                    // The downloadable app ships pre-built: a slow first start there is
+                    // macOS checking the new app, not a build.
+                    self.status.stringValue = self.bundled
+                        ? "Opening Seyes for the first time…"
+                        : "Building Seyes. This happens once after an update…"
                 }
                 if attempt > 600 {
                     self.status.stringValue = "Seyes did not start."
@@ -375,6 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         main.addItem(appItem)
         let appMenu = NSMenu()
         appMenu.addItem(withTitle: "About Seyes", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(withTitle: "Check for Updates…", action: #selector(checkForUpdates), keyEquivalent: "")
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide Seyes", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit Seyes", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -409,6 +458,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
         NSApp.mainMenu = main
         NSApp.windowsMenu = windowMenu
+    }
+
+    /// Only when asked. Seyes makes no network calls on its own, so there is
+    /// no background check: this asks GitHub for the latest release once, when
+    /// the menu item is chosen, and offers the download page if it is newer.
+    @objc func checkForUpdates() {
+        let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+        var request = URLRequest(url: URL(string: "https://api.github.com/repos/oscomarch/seyes/releases/latest")!)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        request.timeoutInterval = 10
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            let json = data.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }
+            let tag = (json?["tag_name"] as? String ?? "").trimmingCharacters(in: CharacterSet(charactersIn: "v"))
+            let page = json?["html_url"] as? String
+            DispatchQueue.main.async {
+                let alert = NSAlert()
+                if error != nil || (status != 200 && status != 404) {
+                    alert.messageText = "Couldn't check for updates"
+                    alert.informativeText = "Check your internet connection and try again."
+                } else if status == 200, Self.isNewer(tag, than: current), let page = page, let link = URL(string: page) {
+                    alert.messageText = "Seyes \(tag) is available"
+                    alert.informativeText = "You have \(current). Download the new version and drag it into Applications, replacing this one. Your writing isn't touched."
+                    alert.addButton(withTitle: "Download")
+                    alert.addButton(withTitle: "Later")
+                    alert.beginSheetModal(for: self.window) { if $0 == .alertFirstButtonReturn { NSWorkspace.shared.open(link) } }
+                    return
+                } else {
+                    alert.messageText = "You're up to date"
+                    alert.informativeText = "Seyes \(current) is the latest version."
+                }
+                alert.beginSheetModal(for: self.window, completionHandler: nil)
+            }
+        }.resume()
+    }
+
+    static func isNewer(_ candidate: String, than current: String) -> Bool {
+        let a = candidate.split(separator: ".").map { Int($0) ?? 0 }
+        let b = current.split(separator: ".").map { Int($0) ?? 0 }
+        for i in 0..<max(a.count, b.count) {
+            let x = i < a.count ? a[i] : 0, y = i < b.count ? b[i] : 0
+            if x != y { return x > y }
+        }
+        return false
     }
 
     @objc func reload() { webView.reload() }

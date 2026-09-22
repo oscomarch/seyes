@@ -23,11 +23,11 @@ function inside(child: string, parent: string): boolean {
  */
 export function isInICloud(absolute: string): boolean {
   const home = os.homedir()
-  const drive = path.join(home, 'Library', 'Mobile Documents')
+  const drive = path.join(/*turbopackIgnore: true*/ home, 'Library', 'Mobile Documents')
   if (inside(absolute, drive)) return true
   for (const synced of ['Desktop', 'Documents']) {
-    const local = path.join(home, synced)
-    const mirror = path.join(drive, 'com~apple~CloudDocs', synced)
+    const local = path.join(/*turbopackIgnore: true*/ home, synced)
+    const mirror = path.join(/*turbopackIgnore: true*/ drive, 'com~apple~CloudDocs', synced)
     if (inside(absolute, local) && existsSync(mirror)) return true
   }
   return false

@@ -9,9 +9,10 @@ import { PanelToggleIcon } from '@/components/icons'
 import { CommandPalette } from '@/components/CommandPalette'
 import { Notices } from '@/components/Notices'
 import { markFresh } from '@/lib/client/fresh'
+import { Welcome } from '@/components/Welcome'
 import type { TreeNode } from '@/lib/fs/tree'
 
-export default function Home() {
+function Workspace() {
   const [tree, setTree] = useState<TreeNode[]>([])
   const [current, setCurrent] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -139,4 +140,28 @@ export default function Home() {
       <Notices />
     </div>
   )
+}
+
+type Setup = { configured: boolean; suggested?: { path: string; display: string; name: string; icloud: boolean } }
+
+/**
+ * Nothing touches the disk until a writing folder has been chosen: before
+ * that the app shows its welcome instead of the workspace, whose first
+ * request would otherwise create the default folder unasked.
+ */
+export default function Home() {
+  const [setup, setSetup] = useState<Setup | null>(null)
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then(setSetup)
+      .catch(() => setSetup({ configured: true }))
+  }, [])
+
+  if (!setup) return null
+  if (!setup.configured && setup.suggested) {
+    return <Welcome suggested={setup.suggested} onDone={() => setSetup({ configured: true })} />
+  }
+  return <Workspace />
 }

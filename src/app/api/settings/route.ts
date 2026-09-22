@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { existsSync, statSync } from 'node:fs'
 import path from 'node:path'
-import { loadConfig, switchRoot } from '@/lib/config'
+import { loadConfig, switchRoot, isConfigured, defaultRoot } from '@/lib/config'
 import { describeFolder, isInICloud, displayPath } from '@/lib/fs/folder'
 import { sameOriginOnly, GuardError } from '../guard'
 
@@ -15,7 +15,12 @@ async function summary() {
 }
 
 export async function GET() {
-  return NextResponse.json(await summary())
+  // Before the first run's choice, report without loadConfig, which would
+  // create the default folder before anyone agreed to it.
+  if (!(await isConfigured())) {
+    return NextResponse.json({ configured: false, suggested: describeFolder(defaultRoot()) })
+  }
+  return NextResponse.json({ configured: true, ...(await summary()) })
 }
 
 /** Open another folder. The notes in the current one stay where they are. */
