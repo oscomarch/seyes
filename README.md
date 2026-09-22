@@ -2,12 +2,14 @@
 
 A small writing app. Your writing stays in plain files on your own computer.
 
+**[Download Seyes for Mac](https://oscomarch.github.io/seyes/)**. The page walks
+you through the one-time step macOS asks for.
+
+Or run it from a terminal with Node installed.
+
 ```
 npx seyes-app
 ```
-
-On a Mac you can also install it as a real app. That's further down, in
-[Get it as a Mac app](#get-it-as-a-mac-app).
 
 ![Seyes](.github/media/seyes.png)
 
