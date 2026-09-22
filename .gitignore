@@ -46,3 +46,8 @@ mac/seyes.iconset/
 
 # built by mac/release.sh
 dist/
+
+# promo videos (rendered by promo/make.py)
+promo/out/
+promo/.build/
+promo/__pycache__/
